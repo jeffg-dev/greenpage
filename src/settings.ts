@@ -2,7 +2,7 @@ import { S } from "./strings.js";
 import { ask } from "./ui.js";
 
 export type Settings = {
-  font: "serif" | "sans";
+  font: "serif" | "sans" | "mono";
   size: "regular" | "large";
   theme: "light" | "dark";
 };
@@ -31,8 +31,13 @@ export function initSettings(
   document.getElementById("appVersion")!.textContent = import.meta.env.CP_VERSION;
   let committed = { ...initial };
 
+  function formFont(values: FormData): Settings["font"] {
+    const font = values.get("font");
+    return font === "sans" || font === "mono" ? font : "serif";
+  }
+
   function updatePreviews(): void {
-    const font = new FormData(form).get("font") === "sans" ? "sans" : "serif";
+    const font = formFont(new FormData(form));
     for (const sample of form.querySelectorAll<HTMLElement>(".size-preview")) {
       sample.dataset.previewFont = font;
     }
@@ -50,7 +55,7 @@ export function initSettings(
     event.preventDefault();
     const values = new FormData(form);
     committed = {
-      font: values.get("font") === "sans" ? "sans" : "serif",
+      font: formFont(values),
       size: values.get("size") === "large" ? "large" : "regular",
       theme: values.get("theme") === "dark" ? "dark" : "light",
     };

@@ -36,6 +36,17 @@ test("settings are pending until Apply, and Reset opens a confirm dialog", async
   await expect(root).toHaveAttribute("data-size", "regular");
 });
 
+test("choosing Monospace applies data-font and renders the real font", async ({ page }) => {
+  const root = page.locator("html");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("radio", { name: "Monospace" }).check();
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(root).toHaveAttribute("data-font", "mono");
+  await page.waitForFunction(() => document.fonts.check('16px "Source Code Pro"'));
+  const family = await page.locator("#ta").evaluate((el) => getComputedStyle(el).fontFamily);
+  expect(family).toContain("Source Code Pro");
+});
+
 test("Cancel and Escape discard choices and return to the writing selection", async ({ page }) => {
   const ta = page.locator("#ta");
   await ta.fill("A place to keep my writing.");

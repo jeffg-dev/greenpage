@@ -22,6 +22,12 @@ describe("settings storage", () => {
     expect(JSON.parse(values.get(SETTINGS_KEY)!)).toEqual({ font: "sans", size: "large", theme: "dark" });
   });
 
+  it("round-trips the monospace font choice", () => {
+    const settings = { font: "mono", size: "regular", theme: "light" } as const;
+    expect(writeSettings(settings)).toBe(true);
+    expect(readSettings()).toEqual(settings);
+  });
+
   it("migrates earlier sizes and a missing theme to the new defaults", () => {
     values.set(SETTINGS_KEY, JSON.stringify({ font: "dys", size: "small" }));
     expect(readSettings()).toEqual({ font: "sans", size: "regular", theme: "light" });
