@@ -1,5 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { randomDraftName, upsertDraft, type DraftRecord } from "../../src/drafts.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  boot,
+  currentId,
+  flush,
+  initDraftStorage,
+  persistedText,
+  randomDraftName,
+  switchTo,
+  upsertDraft,
+  type DraftRecord,
+} from "../../src/drafts.js";
 
 describe("randomDraftName", () => {
   it("produces <numberword>-<asteroid>.txt with no spaces or hyphens beyond the one separator", () => {
@@ -36,5 +46,53 @@ describe("upsertDraft", () => {
 
   it("never adds an empty record that was not already present", () => {
     expect(upsertDraft([record("b", "keep")], record("a", ""))).toEqual([record("b", "keep")]);
+  });
+});
+
+describe("storage-backed draft lifecycle", () => {
+  let store: Map<string, string>;
+  let session: Map<string, string>;
+
+  beforeEach(() => {
+    store = new Map();
+    session = new Map();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => { store.set(key, value); },
+    });
+    vi.stubGlobal("sessionStorage", {
+      getItem: (key: string) => session.get(key) ?? null,
+      setItem: (key: string, value: string) => { session.set(key, value); },
+    });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reopening the currently open draft keeps unflushed typing instead of reverting to a stale snapshot", () => {
+    boot();
+    const id = currentId();
+    flush("Hello");
+
+    const result = switchTo("Hello World", id);
+
+    expect(result?.text).toBe("Hello World");
+    expect(persistedText()).toBe("Hello World");
+  });
+
+  it("a failing write keeps persistedText() unchanged, so the dirty state stays truthful", () => {
+    let errors = 0;
+    initDraftStorage(() => { errors++; });
+    boot();
+    flush("first save");
+    expect(persistedText()).toBe("first save");
+
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: () => { throw new DOMException("Full", "QuotaExceededError"); },
+    });
+    flush("second save, never lands");
+
+    expect(persistedText(), "a failed write must not be reported as saved").toBe("first save");
+    expect(errors).toBe(1);
   });
 });

@@ -126,8 +126,11 @@ export function initDraftStorage(handler: () => void): void {
 }
 
 function persist(text: string): void {
-  persisted = text;
-  if (!storeDraft({ id, name, text, updatedAt: Date.now() })) onError?.();
+  if (storeDraft({ id, name, text, updatedAt: Date.now() })) {
+    persisted = text;
+  } else {
+    onError?.();
+  }
 }
 
 export function currentName(): string {
@@ -190,9 +193,9 @@ export function adoptFile(currentText: string, fileName: string, fileText: strin
 }
 
 export function switchTo(currentText: string, targetId: string): { name: string; text: string } | null {
+  flush(currentText);
   const record = readDraft(targetId);
   if (!record) return null;
-  flush(currentText);
   id = record.id;
   name = record.name;
   persisted = record.text;
@@ -216,6 +219,3 @@ export function saveAs(newName: string, text: string): string {
   return name;
 }
 
-export function removeDraft(target: string): void {
-  deleteDraft(target);
-}

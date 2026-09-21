@@ -31,16 +31,15 @@ const TXT_TYPES: FilePickerAcceptType[] = [
 let handle: TPFileHandle | null = null;
 let fileName: string | null = null;
 
-export const currentFileName = (): string | null => fileName;
-
 export const canSaveToFile = (): boolean => typeof window.showSaveFilePicker === "function";
 
 export const cleanName = (name: string): string =>
   name.replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, "").trim().slice(0, 180).trim().replace(/\.+$/, "");
 
+export const ensureTxt = (name: string): string => (/\.txt$/i.test(name) ? name : name + ".txt");
+
 export function downloadName(name: string): string {
-  const base = cleanName(name) || "My writing";
-  return /\.txt$/i.test(base) ? base : base + ".txt";
+  return ensureTxt(cleanName(name) || "My writing");
 }
 
 export function forgetFile(): void {
@@ -73,12 +72,12 @@ export const looksBinary = (s: string): boolean => {
 export async function save(text: string, chosenName?: string): Promise<string | null> {
   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
   if (window.showSaveFilePicker) {
-    let target = handle;
+    let target = chosenName && handle && handle.name !== chosenName ? null : handle;
     try {
       if (!target) {
         try {
           target = await window.showSaveFilePicker({
-            suggestedName: fileName ?? suggestName(text),
+            suggestedName: chosenName ?? fileName ?? suggestName(text),
             types: TXT_TYPES,
           });
           handle = target;

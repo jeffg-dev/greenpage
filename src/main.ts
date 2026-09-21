@@ -38,12 +38,11 @@ const btnOpen = $<HTMLButtonElement>("btnOpen");
 const btnSave = $<HTMLButtonElement>("btnSave");
 const btnSaveLabel = $("btnSaveLabel");
 const btnSettings = $<HTMLButtonElement>("btnSettings");
+const btnDocName = $<HTMLButtonElement>("docName");
 const settingsDlg = $<HTMLDialogElement>("settingsDlg");
 const downloadDlg = $<HTMLDialogElement>("downloadDlg");
 const draftsDlg = $<HTMLDialogElement>("draftsDlg");
 btnSaveLabel.textContent = files.canSaveToFile() ? S.save : S.download;
-
-const dlg = $<HTMLDialogElement>("dlg");
 
 const sayDlg = $<HTMLDialogElement>("say");
 const sayBody = $("sayBody");
@@ -124,7 +123,7 @@ function refreshDirty(): void {
   document.title = `${drafts.currentName()} — ${S.appName}`;
 }
 
-const docNameUI = initDocName($<HTMLButtonElement>("docName"), $<HTMLInputElement>("docNameInput"), (newName) => {
+const docNameUI = initDocName(btnDocName, $<HTMLInputElement>("docNameInput"), (newName) => {
   drafts.rename(newName, ta.value);
   refreshDirty();
 });
@@ -153,8 +152,8 @@ document.addEventListener("visibilitychange", () => {
 });
 
 const askingSomething = (): boolean =>
-  dlg.open || sayDlg.open || settingsDlg.open || downloadDlg.open || draftsDlg.open || openMenuCtl.isOpen();
-const toolbar = initToolbar($("toolbar"), ta, askingSomething);
+  sayDlg.open || settingsDlg.open || downloadDlg.open || draftsDlg.open || openMenuCtl.isOpen();
+const toolbar = initToolbar($("toolbar"), [btnDocName, btnSettings], ta, askingSomething);
 
 sayOk.textContent = S.errOk;
 $("sayTitle").textContent = S.errTitle;
@@ -186,14 +185,14 @@ function lockDocument(): () => void {
 function beginFileAction(): boolean {
   if (!appReady || fileBusy || askingSomething()) return false;
   fileBusy = true;
-  for (const button of [btnNew, btnOpen, btnSave, btnSettings]) button.disabled = true;
+  for (const button of [btnNew, btnOpen, btnSave, btnSettings, btnDocName]) button.disabled = true;
   toolbar.refresh();
   return true;
 }
 
 function endFileAction(): void {
   fileBusy = false;
-  for (const button of [btnNew, btnOpen, btnSave, btnSettings]) button.disabled = false;
+  for (const button of [btnNew, btnOpen, btnSave, btnSettings, btnDocName]) button.disabled = false;
   toolbar.refresh();
 }
 
@@ -232,7 +231,7 @@ const draftsDialog = initDraftsDialog(draftsDlg, $("draftsList"), $("draftsEmpty
     syncDocName();
     unlock();
   },
-  onDelete: (id) => drafts.removeDraft(id),
+  onDelete: (id) => drafts.deleteDraft(id),
 });
 
 async function doOpenFile(): Promise<void> {

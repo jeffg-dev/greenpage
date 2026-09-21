@@ -1,9 +1,10 @@
 export function initToolbar(
   root: HTMLElement,
+  extra: HTMLButtonElement[],
   editor: HTMLTextAreaElement,
   dialogOpen: () => boolean,
 ): { refresh: () => void; focus: (button?: HTMLButtonElement) => void } {
-  const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>("button"));
+  const buttons = [...root.querySelectorAll<HTMLButtonElement>("button"), ...extra];
   let current = buttons[0];
   const available = () => buttons.filter((button) => !button.disabled);
   const refresh = () => {
@@ -15,13 +16,13 @@ export function initToolbar(
     refresh();
     current?.focus({ focusVisible: true } as FocusOptions);
   };
-  root.addEventListener("focusin", (event) => {
+  const onFocusin = (event: FocusEvent) => {
     if (buttons.includes(event.target as HTMLButtonElement)) {
       current = event.target as HTMLButtonElement;
       refresh();
     }
-  });
-  root.addEventListener("keydown", (event) => {
+  };
+  const onKeydown = (event: KeyboardEvent) => {
     if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.key === "Escape") {
       event.preventDefault();
@@ -40,7 +41,13 @@ export function initToolbar(
       event.preventDefault();
       focus(next);
     }
-  });
+  };
+  root.addEventListener("focusin", onFocusin);
+  root.addEventListener("keydown", onKeydown);
+  for (const button of extra) {
+    button.addEventListener("focusin", onFocusin);
+    button.addEventListener("keydown", onKeydown);
+  }
   const apple = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
   addEventListener("keydown", (event) => {
     if (event.isComposing || event.defaultPrevented || dialogOpen()) return;
@@ -65,7 +72,7 @@ export function initToolbar(
       : event.altKey && ((event.shiftKey && !event.ctrlKey) || (event.ctrlKey && !event.shiftKey));
     if (landmarkModifiers && (event.code === "Period" || event.code === "Comma")) {
       event.preventDefault();
-      if (root.contains(document.activeElement)) editor.focus({ preventScroll: true });
+      if (buttons.includes(document.activeElement as HTMLButtonElement)) editor.focus({ preventScroll: true });
       else focus();
     }
   });

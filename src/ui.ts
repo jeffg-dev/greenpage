@@ -175,44 +175,6 @@ function trapTab(dlg: HTMLDialogElement, stops: HTMLElement[]): () => void {
   return () => dlg.removeEventListener("keydown", onKeydown);
 }
 
-export function ask(
-  labels: { title: string; body: string; keep: string; go: string },
-  restoreFocusTo: HTMLElement,
-): Promise<boolean> {
-  const dlg = document.getElementById("dlg") as HTMLDialogElement;
-  const title = document.getElementById("dlgTitle")!;
-  const body = document.getElementById("dlgBody")!;
-  const keep = document.getElementById("dlgKeep") as HTMLButtonElement;
-  const go = document.getElementById("dlgGo") as HTMLButtonElement;
-  title.textContent = labels.title;
-  body.textContent = labels.body;
-  keep.textContent = labels.keep;
-  go.textContent = labels.go;
-
-  return new Promise<boolean>((resolve) => {
-    let answer = false;
-    const untrap = trapTab(dlg, [keep, go]);
-    const onGo = () => {
-      answer = true;
-      dlg.close();
-    };
-    const onKeep = () => dlg.close();
-    const onClose = () => {
-      untrap();
-      go.removeEventListener("click", onGo);
-      keep.removeEventListener("click", onKeep);
-      dlg.removeEventListener("close", onClose);
-      restoreFocusTo.focus();
-      resolve(answer);
-    };
-    go.addEventListener("click", onGo);
-    keep.addEventListener("click", onKeep);
-    dlg.addEventListener("close", onClose);
-    dlg.showModal();
-    keep.focus({ focusVisible: true } as FocusOptions);
-  });
-}
-
 export function say(
   dlg: HTMLDialogElement,
   body: HTMLElement,

@@ -34,14 +34,14 @@
         <button type="button" id="openMenuDraft" role="menuitem" class="menu-item">Draft…</button>
       </div>
 
-      <button type="button" id="docName" title="Rename"></button>
+      <button type="button" id="docName" tabindex="-1" title="Rename"></button>
       <input type="text" id="docNameInput" hidden aria-label="Document name" maxlength="200" autocomplete="off" spellcheck="false" />
 
       <p id="status" role="status" data-state="clean" data-empty="true">
         <span class="gl" aria-hidden="true">&#10003;</span><span id="statusWord"></span>
       </p>
 
-      <button type="button" id="btnSettings" class="btn" title="Settings — Alt+T" aria-keyshortcuts="Alt+T">
+      <button type="button" id="btnSettings" class="btn" tabindex="-1" title="Settings — Alt+T" aria-keyshortcuts="Alt+T">
         <span class="glyph" aria-hidden="true">&#9881;&#65038;</span><span class="vh">Settings</span>
       </button>
     </header>
@@ -128,15 +128,6 @@
       <ul id="draftsList"></ul>
       <div class="dlg-row">
         <button type="button" id="draftsClose" class="btn">Close</button>
-      </div>
-    </dialog>
-
-    <dialog id="dlg" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
-      <h2 id="dlgTitle">Reset to default settings?</h2>
-      <p id="dlgBody">Letters, font size and colors go back to how they started.</p>
-      <div class="dlg-row">
-        <button type="button" id="dlgKeep" class="btn btn-safe">Cancel</button>
-        <button type="button" id="dlgGo" class="btn">Reset</button>
       </div>
     </dialog>
 

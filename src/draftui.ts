@@ -1,5 +1,5 @@
 import { S } from "./strings.js";
-import { cleanName } from "./files.js";
+import { cleanName, ensureTxt } from "./files.js";
 import { formatRelativeTime, previewOf, type DraftRecord } from "./drafts.js";
 
 export interface OpenMenuHandlers {
@@ -11,7 +11,7 @@ export function initOpenMenu(
   button: HTMLButtonElement,
   menu: HTMLElement,
   handlers: OpenMenuHandlers,
-): { isOpen(): boolean; close(): void } {
+): { isOpen(): boolean } {
   const items = Array.from(menu.querySelectorAll<HTMLButtonElement>(".menu-item"));
   let open = false;
 
@@ -75,7 +75,7 @@ export function initOpenMenu(
     close(false);
   });
 
-  return { isOpen: () => open, close: () => close(false) };
+  return { isOpen: () => open };
 }
 
 export function initDocName(
@@ -89,6 +89,7 @@ export function initDocName(
   function setName(name: string): void {
     value = name;
     button.textContent = name;
+    button.setAttribute("aria-label", `${S.rename}: ${name}`);
   }
 
   function startEdit(): void {
@@ -105,7 +106,7 @@ export function initDocName(
     button.hidden = false;
     if (commit) {
       const cleaned = cleanName(input.value);
-      const finalName = cleaned ? (/\.txt$/i.test(cleaned) ? cleaned : cleaned + ".txt") : value;
+      const finalName = cleaned ? ensureTxt(cleaned) : value;
       if (finalName !== value) {
         setName(finalName);
         onCommit(finalName);
@@ -191,8 +192,14 @@ export function initDraftsDialog(
         del.textContent = "✕";
         del.setAttribute("aria-label", S.draftsDelete(record.name));
         del.addEventListener("click", () => {
+          const rows = Array.from(listEl.querySelectorAll<HTMLLIElement>(".draft-row"));
+          const index = rows.indexOf(li);
           deps.onDelete(record.id);
           render();
+          const newRows = Array.from(listEl.querySelectorAll<HTMLLIElement>(".draft-row"));
+          const target = newRows[index] ?? newRows[newRows.length - 1];
+          const control = target?.querySelector<HTMLButtonElement>(".draft-delete, .draft-open");
+          (control ?? closeButton).focus({ preventScroll: true });
         });
         li.append(del);
       }

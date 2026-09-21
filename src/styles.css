@@ -151,13 +151,6 @@ body {
   align-items: center;
   gap: 2px;
 }
-.grp {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px;
-}
-
 .btn {
   display: inline-flex;
   align-items: center;
@@ -312,6 +305,11 @@ dialog input:focus-visible {
     background: var(--hover);
   }
 }
+@media (any-pointer: coarse) {
+  .menu-item {
+    min-height: 44px;
+  }
+}
 
 #draftsList {
   list-style: none;
@@ -371,6 +369,12 @@ dialog input:focus-visible {
 @media (hover: hover) and (pointer: fine) {
   .draft-delete:hover {
     background: var(--hover);
+  }
+}
+@media (any-pointer: coarse) {
+  .draft-delete {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 
