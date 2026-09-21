@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { SETTINGS_KEY } from "../../src/storage.js";
-import { engineUnavailable, ready } from "./helpers.js";
+import { engineUnavailable, ready, settle } from "./helpers.js";
 
 const STORY = "The next chapter\n猫 and a space traveller 👩🏽‍🚀\nTo be continued…\n";
 
@@ -9,27 +9,34 @@ test.beforeEach(({ browserName }) => {
   test.skip(!!unavailable, unavailable ?? "");
 });
 
-test("reload and reopened tabs start blank, while other tabs keep their own writing", async ({ page, context }) => {
+test("reload keeps the same draft, while a new tab starts a different, empty document", async ({ page, context }) => {
   await page.goto("./");
   await ready(page);
   await page.locator("#ta").fill(STORY);
+  await settle(page);
+  const name = await page.locator("#docName").innerText();
+
   const other = await context.newPage();
   await other.goto("./");
   await ready(other);
   await expect(other.locator("#ta")).toHaveValue("");
+  const otherName = await other.locator("#docName").innerText();
+  expect(otherName, "a new tab is a different document").not.toBe(name);
   await other.locator("#ta").fill("Another page");
-  page.on("dialog", (dialog) => dialog.accept());
+  await settle(other);
+
   await page.reload();
   await ready(page);
-  await expect(page.locator("#ta")).toHaveValue("");
-  await expect(page.locator("#status")).toHaveAttribute("data-empty", "true");
+  await expect(page.locator("#ta")).toHaveValue(STORY);
+  await expect(page.locator("#docName")).toHaveText(name);
   await expect(other.locator("#ta")).toHaveValue("Another page");
-  await page.locator("#ta").fill(STORY);
+
   await page.close();
   const reopened = await context.newPage();
   await reopened.goto("./");
   await ready(reopened);
   await expect(reopened.locator("#ta")).toHaveValue("");
+  expect(await reopened.locator("#docName").innerText(), "a fresh tab never resumes another one's draft").not.toBe(name);
 });
 
 test("only applied settings survive tab closure, and resetting settings preserves current writing", async ({ page, context }) => {
@@ -62,19 +69,30 @@ test("only applied settings survive tab closure, and resetting settings preserve
     .toEqual({ font: "serif", size: "regular", theme: "light" });
 });
 
-test("previously stored drafts are never restored", async ({ page }) => {
+test("a draft named by sessionStorage is restored on boot", async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("cleanpage:draft:v1", JSON.stringify({ text: "Old writing", lastSavedText: "", fileName: null }));
-    localStorage.setItem("cleanpage:draft:v2:old", JSON.stringify({ id: "old", text: "Old writing", lastSavedText: "", fileName: "Old.txt", updatedAt: 1 }));
-    sessionStorage.setItem("cleanpage:document:v2", "old");
+    localStorage.setItem("greenpage:drafts:v1", JSON.stringify([
+      { id: "old", name: "Old.txt", text: "Old writing", updatedAt: 1 },
+    ]));
+    sessionStorage.setItem("greenpage:draft:v1", "old");
+  });
+  await page.goto("./");
+  await ready(page);
+  await expect(page.locator("#ta")).toHaveValue("Old writing");
+  await expect(page.locator("#docName")).toHaveText("Old.txt");
+});
+
+test("an unknown or missing draft id starts a fresh auto-named document", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("greenpage:draft:v1", "does-not-exist");
   });
   await page.goto("./");
   await ready(page);
   await expect(page.locator("#ta")).toHaveValue("");
-  await expect(page.locator("#statusName")).toBeEmpty();
+  await expect(page.locator("#docName")).toHaveText(/^[a-z]+-[a-z]+\.txt$/);
 });
 
-test("denied storage keeps writing and close protection usable and reports settings save failure", async ({ page }) => {
+test("denied storage does not break writing and reports a settings save failure", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "localStorage", {
       configurable: true,
@@ -85,11 +103,6 @@ test("denied storage keeps writing and close protection usable and reports setti
   await ready(page);
   await page.locator("#ta").fill(STORY);
   await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
-  expect(await page.evaluate(() => {
-    const event = new Event("beforeunload", { cancelable: true });
-    dispatchEvent(event);
-    return event.defaultPrevented;
-  })).toBe(true);
   await page.locator("#btnSettings").click();
   await page.getByRole("radio", { name: "Large", exact: true }).check();
   await page.locator("#settingsApply").click();

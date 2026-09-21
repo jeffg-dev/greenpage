@@ -14,9 +14,11 @@ test("a storage abort after choosing a save file reports failure and keeps the w
   await open(page);
   await setText(page, "My story remains unsaved.");
   await page.locator("#btnSave").click();
+  await page.locator("#downloadGo").click();
   await expect(page.locator("#say")).toBeVisible();
   await expect(page.locator("#ta")).toHaveValue("My story remains unsaved.");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
+  // The download failed, but the draft itself was already autosaved locally.
+  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
 });
 
 test("a storage abort after choosing an open file reports failure", async ({ page }) => {
@@ -28,6 +30,7 @@ test("a storage abort after choosing an open file reports failure", async ({ pag
   });
   await open(page);
   await page.locator("#btnOpen").click();
+  await page.locator("#openMenuFile").click();
   await expect(page.locator("#say")).toBeVisible();
   await expect(page.locator("#ta")).toHaveValue("");
 });
@@ -40,12 +43,14 @@ test("cancelling either native picker stays quiet and preserves the document", a
   });
   await open(page);
   await page.locator("#btnOpen").click();
+  await page.locator("#openMenuFile").click();
   await expect(page.locator("#ta")).toBeFocused();
   await expect(page.locator("#say")).toBeHidden();
   await setText(page, "Keep my draft.");
   await page.locator("#btnSave").click();
+  await page.locator("#downloadGo").click();
   await expect(page.locator("#ta")).toBeFocused();
   await expect(page.locator("#say")).toBeHidden();
   await expect(page.locator("#ta")).toHaveValue("Keep my draft.");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
+  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
 });

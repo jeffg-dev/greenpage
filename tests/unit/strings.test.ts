@@ -7,17 +7,12 @@ const HTML = readFileSync(join(import.meta.dirname, "..", "..", "index.html"), "
 
 const IN_MARKUP = [
   "appName",
-  "fileGroup",
   "toolbar",
-  "editGroup",
-  "newDoc",
-  "open",
-  "save",
-  "download",
-  "print",
-  "undo",
-  "redo",
-  "settings",
+  "openFile",
+  "openDraft",
+  "rename",
+  "docNameLabel",
+  "close",
   "letters",
   "lettersSerif",
   "lettersSansSerif",
@@ -34,35 +29,36 @@ const IN_MARKUP = [
   "previewSize",
   "about",
   "website",
-  "downloadTitle",
-  "downloadName",
+  "saveTitle",
+  "saveName",
+  "saveDraft",
+  "download",
+  "draftsTitle",
+  "draftsEmpty",
   "pageLabel",
   "tabHint",
-  "saved",
 ] as const;
 
 const IN_CODE = [
+  "newDoc",
+  "open",
+  "save",
+  "settings",
   "tabHintMac",
   "saved",
-  "savedPrefix",
   "pageCount",
-  "dlgNewTitle",
-  "dlgNewBody",
-  "dlgNewGo",
-  "dlgOpenTitle",
-  "dlgOpenBody",
-  "dlgOpenGo",
-  "dlgKeep",
+  "resetTitle",
+  "resetBody",
+  "nameRequired",
+  "nameInvalid",
+  "draftsDelete",
   "errSave",
   "errNew",
   "errOpen",
   "errNotText",
   "errOk",
   "settingsStorageError",
-  "downloadNameRequired",
-  "downloadNameInvalid",
-  "resetTitle",
-  "resetBody",
+  "draftsStorageError",
   "newTab",
   "errTitle",
 ] as const;
@@ -79,12 +75,4 @@ describe("strings.ts is the single source of the wording", () => {
     const orphans = Object.keys(S).filter((k) => !covered.has(k));
     expect(orphans, "a new string must be wired up, not just declared").toEqual([]);
   });
-
-  it("keeps the chip's two halves joining into one sentence", () => {
-    // The chip renders `savedPrefix` and the filename in two spans so that only
-    // the filename can be elided; concatenated they are what role="status"
-    // announces, and the two halves must not run together.
-    expect(S.savedPrefix.endsWith(" "), "the two halves need the space").toBe(true);
-  });
-
 });

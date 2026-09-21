@@ -64,12 +64,14 @@ test("refusing a file that is not plain writing keeps the document bound to its 
 
   await setText(page, "My tide pool story");
   await page.locator("#btnSave").click();
+  await page.locator("#downloadGo").click();
   await settle(page);
-  await expect(page.locator("#status")).toContainText("story.txt");
+  await expect(page.locator("#docName")).toHaveText("story.txt");
   expect((await disk(page)).savePicks).toBe(1);
 
   await setText(page, "My tide pool story and more");
   await page.locator("#btnSave").click();
+  await page.locator("#downloadGo").click();
   await settle(page);
   let d = await disk(page);
   expect(d.savePicks, "the child is never asked where twice").toBe(1);
@@ -79,17 +81,19 @@ test("refusing a file that is not plain writing keeps the document bound to its 
     window.__disk.nextOpen = { name: "photo.png", text: "�".repeat(400) };
   });
   await page.locator("#btnOpen").click();
+  await page.locator("#openMenuFile").click();
   await expect(page.locator("#say")).toBeVisible();
   await page.locator("#sayOk").click();
   await expect(page.locator("#say")).toBeHidden();
   await settle(page);
 
   expect(await page.inputValue("#ta")).toBe("My tide pool story and more");
-  await expect(page.locator("#status")).toContainText("story.txt");
+  await expect(page.locator("#docName")).toHaveText("story.txt");
   await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
 
   await setText(page, "My tide pool story and more and more");
   await page.locator("#btnSave").click();
+  await page.locator("#downloadGo").click();
   await settle(page);
   d = await disk(page);
   expect(d.savePicks, "no second file, no second question").toBe(1);
@@ -97,7 +101,7 @@ test("refusing a file that is not plain writing keeps the document bound to its 
   expect(d.files["story.txt"], "the file the teacher collects is the current one").toBe(
     "My tide pool story and more and more",
   );
-  await expect(page.locator("#status")).toContainText("story.txt");
+  await expect(page.locator("#docName")).toHaveText("story.txt");
 });
 
 test("opening a real .txt rebinds the document to it, and Save writes back there", async ({
@@ -108,19 +112,22 @@ test("opening a real .txt rebinds the document to it, and Save writes back there
 
   await setText(page, "first document");
   await page.locator("#btnSave").click();
+  await page.locator("#downloadGo").click();
   await settle(page);
-  expect(await page.locator("#status").innerText()).toContain("story.txt");
+  await expect(page.locator("#docName")).toHaveText("story.txt");
 
   await page.evaluate(() => {
     window.__disk.nextOpen = { name: "from-the-teacher.txt", text: "write about your weekend\n" };
   });
   await page.locator("#btnOpen").click();
+  await page.locator("#openMenuFile").click();
   await settle(page);
   expect(await page.inputValue("#ta")).toBe("write about your weekend\n");
-  expect(await page.locator("#status").innerText()).toContain("from-the-teacher.txt");
+  await expect(page.locator("#docName")).toHaveText("from-the-teacher.txt");
 
   await setText(page, "write about your weekend\nWe went to the beach.\n");
   await page.locator("#btnSave").click();
+  await page.locator("#downloadGo").click();
   await settle(page);
   const d = await disk(page);
   expect(d.savePicks, "the opened file's handle was adopted").toBe(1);

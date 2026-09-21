@@ -1,8 +1,4 @@
-export function initHistory(
-  ta: HTMLTextAreaElement,
-  undoButton: HTMLButtonElement,
-  redoButton: HTMLButtonElement,
-): { refresh(): void; reset(): void } {
+export function initHistory(ta: HTMLTextAreaElement): { refresh(): void; reset(): void } {
   let baseline = ta.value;
   let protectBoundary = false;
   let undoAllowed = false;
@@ -15,11 +11,9 @@ export function initHistory(
   let documentInputs = 0;
   let running = false;
 
-  function paint(button: HTMLButtonElement, available: boolean): void {
-    const value = String(!available);
-    if (button.getAttribute("aria-disabled") !== value) {
-      button.setAttribute("aria-disabled", value);
-    }
+  function paint(): void {
+    ta.dataset.undoDisabled = String(!(undoAvailable && !composing));
+    ta.dataset.redoDisabled = String(!(redoAvailable && !composing));
   }
 
   function refresh(): void {
@@ -30,17 +24,15 @@ export function initHistory(
       if (!undoAllowed) undoAvailable = false;
       if (!redoAllowed) redoAvailable = false;
     }
-    paint(undoButton, undoAvailable && !composing);
-    paint(redoButton, redoAvailable && !composing);
+    paint();
   }
 
   function permitted(command: "undo" | "redo"): boolean {
     return !composing && (command === "undo" ? undoAvailable : redoAvailable);
   }
 
-  function run(command: "undo" | "redo", button?: HTMLButtonElement, keyboard = false): void {
+  function run(command: "undo" | "redo"): void {
     if (running || !permitted(command)) return;
-    const restoreButton = keyboard && document.activeElement === button;
     const x = window.scrollX;
     const y = window.scrollY;
     const top = ta.scrollTop;
@@ -64,23 +56,9 @@ export function initHistory(
       else { redoAllowed = false; redoSteps = 0; }
     }
     refresh();
-    if (restoreButton) button?.focus({ preventScroll: true });
-    const restoreScroll = () => {
-      ta.scrollTop = top;
-      ta.scrollLeft = left;
-      window.scrollTo(x, y);
-    };
-    restoreScroll();
-  }
-
-  for (const [button, command] of [
-    [undoButton, "undo"],
-    [redoButton, "redo"],
-  ] as const) {
-    button.addEventListener("mousedown", (event) => {
-      if (event.button === 0) event.preventDefault();
-    });
-    button.addEventListener("click", (event) => run(command, button, event.detail === 0));
+    ta.scrollTop = top;
+    ta.scrollLeft = left;
+    window.scrollTo(x, y);
   }
 
   ta.addEventListener("input", (event) => {
@@ -160,7 +138,7 @@ export function initHistory(
         ta.focus({ preventScroll: true });
         ta.value = baseline;
         ta.setSelectionRange(baseline.length, baseline.length);
-        if (document.execCommand("insertText", false, "\u200b")) {
+        if (document.execCommand("insertText", false, "​")) {
           cleared = document.execCommand("undo") && !document.queryCommandEnabled("undo");
         }
       }

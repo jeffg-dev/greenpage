@@ -51,12 +51,13 @@ export function initToolbar(
       return;
     }
     const menuModifiers = event.altKey && !event.metaKey && (apple ? event.ctrlKey : !event.ctrlKey);
-    if (menuModifiers && ["f", "e", "t"].includes(key)) {
+    if (menuModifiers && (key === "f" || key === "t")) {
       event.preventDefault();
-      const id = key === "f" ? "btnNew" : key === "e" ? "btnUndo" : "btnSettings";
-      const target = buttons.find((button) => button.id === id);
-      if (key === "t") target?.click();
-      else focus(target);
+      if (key === "t") {
+        document.getElementById("btnSettings")?.click();
+        return;
+      }
+      focus(buttons.find((button) => button.id === "btnNew"));
       return;
     }
     const landmarkModifiers = apple

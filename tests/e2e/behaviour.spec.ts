@@ -1,9 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { CORPUS, chooseFont, geometry, open, setText, settle } from "./helpers.js";
 
-const chip = (page: import("@playwright/test").Page) =>
-  page.locator("#status").innerText();
-
 test("the saved indicator stays quiet while editing and follows edit and undo", async ({
   page,
 }) => {
@@ -13,10 +10,11 @@ test("the saved indicator stays quiet while editing and follows edit and undo", 
 
   await page.locator("#ta").click();
   await page.keyboard.type("Once upon a time");
-  await settle(page);
   await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
+  await settle(page);
+  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
 
-  for (let i = 0; i < 12 && (await page.inputValue("#ta")) !== ""; i++) {
+  for (let i = 0; i < 20 && (await page.inputValue("#ta")) !== ""; i++) {
     await page.keyboard.press("ControlOrMeta+z");
   }
   await settle(page);
@@ -25,62 +23,29 @@ test("the saved indicator stays quiet while editing and follows edit and undo", 
   await expect(page.locator("#status")).toHaveAttribute("data-empty", "true");
 });
 
-test("New asks first and Keep writing keeps every word", async ({ page }) => {
+test("New clears the page immediately, without asking, and drafts persist so closing is always safe", async ({ page }) => {
   await open(page);
   await setText(page, "There are very few good tragedies\nsome are idylls in dialogue, well written and well rhymed.");
 
   await page.locator("#btnNew").click();
-  await expect(page.locator("#dlg")).toBeVisible();
-  await expect(page.locator("#dlgKeep")).toBeFocused();
-
-  await page.locator("#dlgKeep").click();
-  await expect(page.locator("#dlg")).toBeHidden();
-  expect(await page.inputValue("#ta")).toContain("good tragedies");
+  await expect(page.locator("#ta")).toHaveValue("");
   await expect(page.locator("#ta")).toBeFocused();
 
-  await page.locator("#btnNew").click();
-  await expect(page.locator("#dlg")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.locator("#dlg")).toBeHidden();
-  expect(await page.inputValue("#ta")).toContain("good tragedies");
-
-  await page.locator("#btnNew").click();
-  await page.locator("#dlgGo").click();
-  await expect(page.locator("#dlg")).toBeHidden();
-  await settle(page);
-  expect(await page.inputValue("#ta")).toBe("");
-  await expect(page.locator("#ta")).toBeFocused();
-});
-
-test("New on a clean page clears at once, with no dialog", async ({ page }) => {
-  await open(page);
-  await page.locator("#btnNew").click();
-  await expect(page.locator("#dlg")).toBeHidden();
-  expect(await page.inputValue("#ta")).toBe("");
+  const dialogs: string[] = [];
+  page.on("dialog", (d) => {
+    dialogs.push(d.type());
+    void d.dismiss();
+  });
+  await page.close({ runBeforeUnload: true });
+  await new Promise((r) => setTimeout(r, 1500));
+  expect(dialogs, "drafts persist automatically, so closing is always safe").toEqual([]);
 });
 
 test("New treats whitespace as a blank page", async ({ page }) => {
   await open(page);
   await page.locator("#ta").fill(" \n\t  ");
   await page.locator("#btnNew").click();
-  await expect(page.locator("#dlg")).toBeHidden();
   await expect(page.locator("#ta")).toHaveValue("");
-});
-
-test("New asks before clearing a nonblank page even after it was saved", async ({ page }) => {
-  await page.addInitScript(() => {
-    (window as unknown as Record<string, unknown>)["showOpenFilePicker"] = async () => [{
-      name: "saved-story.txt",
-      getFile: async () => new File(["A saved story"], "saved-story.txt", { type: "text/plain" }),
-    }];
-  });
-  await open(page);
-  await page.locator("#btnOpen").click();
-  await expect(page.locator("#ta")).toHaveValue("A saved story");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
-
-  await page.locator("#btnNew").click();
-  await expect(page.locator("#dlg")).toBeVisible();
 });
 
 test("Tab types a tab, keeps focus, and is undoable", async ({ page }) => {
@@ -124,153 +89,6 @@ test("pasting rich HTML puts plain text in the document", async ({ page }) => {
   const v = await page.inputValue("#ta");
   expect(v, "no markup survives a paste into a textarea").not.toMatch(/[<>]/);
   expect(v.replace(/\s+/gu, " ").trim()).toBe("Big bold it");
-});
-
-test("closing the tab warns about unsaved writing", async ({ page }) => {
-  await open(page);
-  await page.locator("#ta").click();
-  await page.keyboard.type("words worth keeping");
-  await settle(page);
-
-  const dialogs: string[] = [];
-  page.on("dialog", (d) => {
-    dialogs.push(d.type());
-    void d.dismiss();
-  });
-  await page.close({ runBeforeUnload: true });
-  await new Promise((r) => setTimeout(r, 1500));
-  expect(dialogs, "beforeunload protects unsaved writing").toContain("beforeunload");
-});
-
-for (const lead of [
-  { name: "a tab", key: "Tab" },
-  { name: "a space", key: "Space" },
-  { name: "a new line", key: "Enter" },
-]) {
-  test(`writing beginning with ${lead.name} warns on close`, async ({
-    page,
-  }) => {
-    await open(page);
-    await page.locator("#ta").click();
-    await page.keyboard.press(lead.key);
-    await page.keyboard.type("Once upon a time there was a crab");
-    await settle(page);
-    await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
-
-    const dialogs: string[] = [];
-    page.on("dialog", (d) => {
-      dialogs.push(d.type());
-      void d.dismiss();
-    });
-    await page.close({ runBeforeUnload: true });
-    await new Promise((r) => setTimeout(r, 1500));
-    expect(dialogs, "a story that opens with whitespace is still a story").toContain(
-      "beforeunload",
-    );
-  });
-}
-
-/**
- * The same mechanism on the other realistic path: open the teacher's starter
- * file, clear it, write your own. The Delete flips `dirty` while the field is
- * empty, and the guard never armed for the rest of the lesson.
- */
-test("replacing opened text still warns before the tab closes", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const name = "starter.txt";
-    const text = "Write about your favourite animal.\n";
-    (window as unknown as Record<string, unknown>)["showOpenFilePicker"] = async () => [
-      {
-        kind: "file",
-        name,
-        queryPermission: async () => "granted",
-        requestPermission: async () => "granted",
-        getFile: async () => new File([text], name, { type: "text/plain" }),
-      },
-    ];
-  });
-  await open(page);
-  await page.locator("#btnOpen").click();
-  await settle(page);
-  expect(await chip(page)).toContain("starter.txt");
-
-  await page.locator("#ta").click();
-  await page.keyboard.press("ControlOrMeta+a");
-  await page.keyboard.press("Delete");
-  await page.keyboard.type("My very own brand new story about a sea otter.");
-  await settle(page);
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
-
-  const dialogs: string[] = [];
-  page.on("dialog", (d) => {
-    dialogs.push(d.type());
-    void d.dismiss();
-  });
-  await page.close({ runBeforeUnload: true });
-  await new Promise((r) => setTimeout(r, 1500));
-  expect(dialogs).toContain("beforeunload");
-});
-
-/** And the detaching half: back down to whitespace, the warning goes away. */
-test("writing taken back down to whitespace stops asking again", async ({ page }) => {
-  await open(page);
-  await page.locator("#ta").click();
-  await page.keyboard.type("a real sentence");
-  await settle(page);
-  await page.keyboard.press("ControlOrMeta+a");
-  await page.keyboard.press("Delete");
-  await page.keyboard.type("   ");
-  await settle(page);
-  expect(await page.inputValue("#ta")).toBe("   ");
-
-  const dialogs: string[] = [];
-  page.on("dialog", (d) => {
-    dialogs.push(d.type());
-    void d.dismiss();
-  });
-  await page.close({ runBeforeUnload: true });
-  await new Promise((r) => setTimeout(r, 1500));
-  expect(dialogs, "there is nothing written to lose").toEqual([]);
-});
-
-test("a student who has typed nothing is never nagged on the way out", async ({ page }) => {
-  await open(page);
-  await page.locator("#ta").click();
-  await page.keyboard.type("   ");
-  await settle(page);
-
-  const dialogs: string[] = [];
-  page.on("dialog", (d) => {
-    dialogs.push(d.type());
-    void d.dismiss();
-  });
-  await page.close({ runBeforeUnload: true });
-  await new Promise((r) => setTimeout(r, 1500));
-  expect(dialogs, "whitespace alone is not writing worth a warning").toEqual([]);
-});
-
-test("a second question never rewrites the one on screen", async ({ page }) => {
-  await open(page);
-  await setText(page, "precious words");
-
-  await page.locator("#btnNew").click();
-  await expect(page.locator("#dlg")).toBeVisible();
-  const dialogTitle = await page.locator("#dlgTitle").innerText();
-
-  // Measured bug: Ctrl+O here used to turn the open dialog into a different
-  // dialog under the child's eyes, and the single click that followed both
-  // cleared the document and opened the file picker.
-  await page.keyboard.press("ControlOrMeta+o");
-  await page.keyboard.press("ControlOrMeta+s");
-  await settle(page);
-  // The dialog must still be the same one, not silently swapped for another.
-  await expect(page.locator("#dlgTitle")).toHaveText(dialogTitle);
-
-  await page.locator("#dlgKeep").click();
-  await expect(page.locator("#dlg")).toBeHidden();
-  expect(await page.inputValue("#ta")).toBe("precious words");
 });
 
 test("Tab indents without showing a pop-up or arming a different keyboard mode", async ({ page }) => {

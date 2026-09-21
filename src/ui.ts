@@ -94,33 +94,46 @@ export function renderBreaks(host: HTMLElement, pages: number, pageH: number = P
   }
 }
 
-export type Guard = "new" | "open";
+export interface SaveChoice {
+  action: "draft" | "download";
+  name: string;
+}
 
-export function promptDownloadName(suggested: string, restoreFocusTo: HTMLElement): Promise<string | null> {
+export function promptSave(suggested: string, restoreFocusTo: HTMLElement): Promise<SaveChoice | null> {
   const dlg = document.getElementById("downloadDlg") as HTMLDialogElement;
   const form = document.getElementById("downloadForm") as HTMLFormElement;
   const input = document.getElementById("downloadName") as HTMLInputElement;
   const cancel = document.getElementById("downloadCancel") as HTMLButtonElement;
-  const go = document.getElementById("downloadGo") as HTMLButtonElement;
+  const download = document.getElementById("downloadGo") as HTMLButtonElement;
+  const saveDraft = document.getElementById("saveDraftGo") as HTMLButtonElement;
   const error = document.getElementById("downloadNameError")!;
   const complain = (message: string) => {
     input.setCustomValidity(message);
     input.setAttribute("aria-invalid", String(message !== ""));
     error.textContent = message;
   };
+  const validate = (): boolean => {
+    const problem = !input.value.trim() ? S.nameRequired : !cleanName(input.value) ? S.nameInvalid : "";
+    if (problem) {
+      complain(problem);
+      input.reportValidity();
+      return false;
+    }
+    return true;
+  };
   return new Promise((resolve) => {
-    let answer: string | null = null;
+    let answer: SaveChoice | null = null;
     input.value = suggested;
-    const untrap = trapTab(dlg, [input, cancel, go]);
+    const untrap = trapTab(dlg, [input, cancel, saveDraft, download]);
     const onSubmit = (event: SubmitEvent) => {
       event.preventDefault();
-      const problem = !input.value.trim() ? S.downloadNameRequired : !cleanName(input.value) ? S.downloadNameInvalid : "";
-      if (problem) {
-        complain(problem);
-        input.reportValidity();
-        return;
-      }
-      answer = input.value;
+      if (!validate()) return;
+      answer = { action: "download", name: input.value };
+      dlg.close();
+    };
+    const onSaveDraft = () => {
+      if (!validate()) return;
+      answer = { action: "draft", name: input.value };
       dlg.close();
     };
     const onInput = () => complain("");
@@ -128,6 +141,7 @@ export function promptDownloadName(suggested: string, restoreFocusTo: HTMLElemen
     const onClose = () => {
       untrap();
       form.removeEventListener("submit", onSubmit);
+      saveDraft.removeEventListener("click", onSaveDraft);
       input.removeEventListener("input", onInput);
       cancel.removeEventListener("click", onCancel);
       dlg.removeEventListener("close", onClose);
@@ -136,6 +150,7 @@ export function promptDownloadName(suggested: string, restoreFocusTo: HTMLElemen
     };
     complain("");
     form.addEventListener("submit", onSubmit);
+    saveDraft.addEventListener("click", onSaveDraft);
     input.addEventListener("input", onInput);
     cancel.addEventListener("click", onCancel);
     dlg.addEventListener("close", onClose);
@@ -158,18 +173,6 @@ function trapTab(dlg: HTMLDialogElement, stops: HTMLElement[]): () => void {
   };
   dlg.addEventListener("keydown", onKeydown);
   return () => dlg.removeEventListener("keydown", onKeydown);
-}
-
-export function confirmDiscard(kind: Guard, restoreFocusTo: HTMLElement): Promise<boolean> {
-  return ask(
-    {
-      title: kind === "new" ? S.dlgNewTitle : S.dlgOpenTitle,
-      body: kind === "new" ? S.dlgNewBody : S.dlgOpenBody,
-      keep: S.dlgKeep,
-      go: kind === "new" ? S.dlgNewGo : S.dlgOpenGo,
-    },
-    restoreFocusTo,
-  );
 }
 
 export function ask(
