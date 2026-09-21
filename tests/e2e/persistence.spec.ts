@@ -74,7 +74,7 @@ test("a draft named by sessionStorage is restored on boot", async ({ page }) => 
     localStorage.setItem("greenpage:drafts:v1", JSON.stringify([
       { id: "old", name: "Old.txt", text: "Old writing", updatedAt: 1 },
     ]));
-    sessionStorage.setItem("greenpage:draft:v1", "old");
+    sessionStorage.setItem("greenpage:draft:v1", JSON.stringify({ id: "old", name: "Old.txt" }));
   });
   await page.goto("./");
   await ready(page);
@@ -82,7 +82,17 @@ test("a draft named by sessionStorage is restored on boot", async ({ page }) => 
   await expect(page.locator("#docName")).toHaveText("Old.txt");
 });
 
-test("an unknown or missing draft id starts a fresh auto-named document", async ({ page }) => {
+test("a remembered draft that was never written keeps its name on reload", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("greenpage:draft:v1", JSON.stringify({ id: "unwritten", name: "Untouched.txt" }));
+  });
+  await page.goto("./");
+  await ready(page);
+  await expect(page.locator("#ta")).toHaveValue("");
+  await expect(page.locator("#docName")).toHaveText("Untouched.txt");
+});
+
+test("a garbled tab pointer starts a fresh auto-named document", async ({ page }) => {
   await page.addInitScript(() => {
     sessionStorage.setItem("greenpage:draft:v1", "does-not-exist");
   });

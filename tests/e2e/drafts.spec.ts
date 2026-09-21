@@ -16,6 +16,14 @@ test("typing then reloading keeps the same text and the same name", async ({ pag
   await expect(page.locator("#docName")).toHaveText(name);
 });
 
+test("reloading an untouched page keeps the same name", async ({ page }) => {
+  await open(page);
+  const name = await page.locator("#docName").innerText();
+  await page.reload();
+  await ready(page);
+  await expect(page.locator("#docName")).toHaveText(name);
+});
+
 test("a new tab starts a fresh, differently-named empty document", async ({ page, context }) => {
   await open(page);
   await setText(page, "First tab's writing.");

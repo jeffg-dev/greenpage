@@ -80,19 +80,20 @@ export function deleteDraft(id: string): void {
   writeAll(readAll().filter((r) => r.id !== id));
 }
 
-export function currentDraftId(): string | null {
+function rememberedDraft(): { id: string; name: string } | null {
   try {
-    return sessionStorage.getItem(CURRENT_KEY);
+    const value = JSON.parse(sessionStorage.getItem(CURRENT_KEY) ?? "null") as unknown;
+    if (!isRecord(value) || typeof value.id !== "string" || typeof value.name !== "string") return null;
+    return { id: value.id, name: value.name };
   } catch {
     return null;
   }
 }
 
-function setCurrentDraftId(id: string): void {
+function remember(): void {
   try {
-    sessionStorage.setItem(CURRENT_KEY, id);
+    sessionStorage.setItem(CURRENT_KEY, JSON.stringify({ id, name }));
   } catch {
-    // A tab-scoped pointer is a convenience; storage still works without it.
   }
 }
 
@@ -146,18 +147,12 @@ export function persistedText(): string {
 }
 
 export function boot(): { name: string; text: string } {
-  const remembered = currentDraftId();
-  const existing = remembered ? readDraft(remembered) : null;
-  if (existing) {
-    id = existing.id;
-    name = existing.name;
-    persisted = existing.text;
-  } else {
-    id = newDraftId();
-    name = randomDraftName();
-    persisted = "";
-  }
-  setCurrentDraftId(id);
+  const remembered = rememberedDraft();
+  const existing = remembered ? readDraft(remembered.id) : null;
+  id = existing?.id ?? remembered?.id ?? newDraftId();
+  name = existing?.name ?? remembered?.name ?? randomDraftName();
+  persisted = existing?.text ?? "";
+  remember();
   return { name, text: persisted };
 }
 
@@ -179,7 +174,7 @@ export function startNew(currentText: string): { name: string; text: string } {
   id = newDraftId();
   name = randomDraftName();
   persisted = "";
-  setCurrentDraftId(id);
+  remember();
   return { name, text: "" };
 }
 
@@ -187,7 +182,7 @@ export function adoptFile(currentText: string, fileName: string, fileText: strin
   flush(currentText);
   id = newDraftId();
   name = fileName;
-  setCurrentDraftId(id);
+  remember();
   persist(fileText);
   return { name, text: fileText };
 }
@@ -199,12 +194,13 @@ export function switchTo(currentText: string, targetId: string): { name: string;
   id = record.id;
   name = record.name;
   persisted = record.text;
-  setCurrentDraftId(id);
+  remember();
   return { name, text: record.text };
 }
 
 export function rename(newName: string, text: string): string {
   name = newName;
+  remember();
   persist(text);
   return name;
 }
@@ -213,7 +209,7 @@ export function saveAs(newName: string, text: string): string {
   if (newName !== name) {
     id = newDraftId();
     name = newName;
-    setCurrentDraftId(id);
+    remember();
   }
   persist(text);
   return name;
