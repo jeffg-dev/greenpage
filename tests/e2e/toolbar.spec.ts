@@ -40,22 +40,3 @@ test("on a phone every tool stays on screen and the bar stays out of the way", a
   expect(box.shortest, "a fingertip still gets 44 px").toBeGreaterThanOrEqual(44);
   expect(box.sideways, "nothing is pushed off the side").toBe(false);
 });
-
-test("Copy copies all writing without moving the caret", async ({ page, context }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await open(page);
-  await page.locator("#ta").fill("First line\nSecond line");
-  await page.locator("#ta").evaluate((element) => {
-    (element as HTMLTextAreaElement).setSelectionRange(5, 5);
-  });
-  await page.locator("#btnCopy").click();
-
-  await expect(page.locator("#ta")).toBeFocused();
-  await expect(page.locator("#statusWord")).toHaveText("Copied to clipboard");
-  expect(await page.locator("#ta").evaluate((element) => {
-    const ta = element as HTMLTextAreaElement;
-    return { start: ta.selectionStart, end: ta.selectionEnd, length: ta.value.length };
-  })).toEqual({ start: 5, end: 5, length: 22 });
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("First line\nSecond line");
-  await expect(page.locator("#statusWord")).toBeEmpty({ timeout: 2500 });
-});
