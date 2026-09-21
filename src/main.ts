@@ -5,8 +5,10 @@ import { lineHeightOf, linesPerPage, mirrorText } from "./metrics.js";
 import { clearCache, lineStarts, pagesOf } from "./paginate.js";
 import { PrintDoc } from "./printdoc.js";
 import * as files from "./files.js";
+import * as drafts from "./drafts.js";
 import { S } from "./strings.js";
-import { confirmDiscard, promptDownloadName, renderBreaks, say, type Guard } from "./ui.js";
+import { promptSave, renderBreaks, say } from "./ui.js";
+import { initDocName, initDraftsDialog, initOpenMenu } from "./draftui.js";
 import { applySettings, DEFAULT_SETTINGS, initSettings } from "./settings.js";
 import { readSettings, writeSettings } from "./storage.js";
 import { initToolbar } from "./toolbar.js";
@@ -28,19 +30,18 @@ const breaks = $("breaks");
 const printHost = $("printdoc");
 const status = $("status");
 const statusWord = $("statusWord");
-const statusName = $("statusName");
 const statusGlyph = status.querySelector<HTMLElement>(".gl")!;
 const pagecount = $("pagecount");
 
 const btnNew = $<HTMLButtonElement>("btnNew");
 const btnOpen = $<HTMLButtonElement>("btnOpen");
 const btnSave = $<HTMLButtonElement>("btnSave");
-const btnPrint = $<HTMLButtonElement>("btnPrint");
-const btnCopy = $<HTMLButtonElement>("btnCopy");
+const btnSaveLabel = $("btnSaveLabel");
 const btnSettings = $<HTMLButtonElement>("btnSettings");
 const settingsDlg = $<HTMLDialogElement>("settingsDlg");
 const downloadDlg = $<HTMLDialogElement>("downloadDlg");
-btnSave.textContent = files.canSaveToFile() ? S.save : S.download;
+const draftsDlg = $<HTMLDialogElement>("draftsDlg");
+btnSaveLabel.textContent = files.canSaveToFile() ? S.save : S.download;
 
 const dlg = $<HTMLDialogElement>("dlg");
 
@@ -103,62 +104,59 @@ sheet.addEventListener("pointerdown", (e) => {
   ta.focus();
 });
 
-let lastSavedText = "";
-let closeWarningArmed = false;
 let lastStatus = "";
 let appReady = false;
 let copyNotice = false;
 let copyNoticeTimer = 0;
 
-const isDirty = (): boolean => ta.value !== lastSavedText;
 const hasWriting = (): boolean => ta.value.trim().length > 0;
 
-const onBeforeUnload = (e: BeforeUnloadEvent): void => {
-  e.preventDefault();
-};
-
 function refreshDirty(): void {
-  const dirty = isDirty();
-
-  const warnOnClose = dirty && hasWriting();
-  if (warnOnClose !== closeWarningArmed) {
-    closeWarningArmed = warnOnClose;
-    if (warnOnClose) addEventListener("beforeunload", onBeforeUnload);
-    else removeEventListener("beforeunload", onBeforeUnload);
+  const empty = !hasWriting();
+  const pending = ta.value !== drafts.persistedText();
+  const statusKey = JSON.stringify([pending, empty, drafts.currentName()]);
+  if (statusKey !== lastStatus) {
+    lastStatus = statusKey;
+    const shown = !pending && !empty;
+    statusGlyph.textContent = shown ? "✓" : "";
+    statusWord.textContent = shown ? S.saved : "";
+    status.dataset.empty = String(empty);
+    status.dataset.state = pending ? "dirty" : "clean";
   }
-
-  const name = files.currentFileName();
-  const empty = !hasWriting() && !name;
-  const statusKey = JSON.stringify([dirty, empty, name, copyNotice]);
-  if (statusKey === lastStatus) return;
-  lastStatus = statusKey;
-  const shown = !dirty && !empty;
-  statusGlyph.textContent = shown || copyNotice ? "✓" : "";
-  statusWord.textContent = copyNotice ? S.copied : shown ? S.saved : "";
-  statusName.textContent = !copyNotice && shown && name ? " — " + name : "";
-  status.dataset.empty = String(empty);
-  status.dataset.state = dirty ? "dirty" : "clean";
-  document.title = (dirty && hasWriting() ? "• " : "") + (name ? name + " — " : "") + S.appName;
+  document.title = `${drafts.currentName()} — ${S.appName}`;
 }
+
+const docNameUI = initDocName($<HTMLButtonElement>("docName"), $<HTMLInputElement>("docNameInput"), (newName) => {
+  drafts.rename(newName, ta.value);
+  refreshDirty();
+});
+
+function syncDocName(): void {
+  docNameUI.setName(drafts.currentName());
+  refreshDirty();
+}
+
+let draftsWarned = false;
+drafts.initDraftStorage(() => {
+  if (draftsWarned) return;
+  draftsWarned = true;
+  tell(S.draftsStorageError);
+});
 
 ta.addEventListener("input", () => {
   refreshDirty();
   requestAnimationFrame(layout);
+  drafts.scheduleAutosave(ta.value, refreshDirty);
 });
 
-const askingSomething = (): boolean => dlg.open || sayDlg.open || settingsDlg.open || downloadDlg.open;
+addEventListener("pagehide", () => drafts.flush(ta.value));
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") drafts.flush(ta.value);
+});
+
+const askingSomething = (): boolean =>
+  dlg.open || sayDlg.open || settingsDlg.open || downloadDlg.open || draftsDlg.open || openMenuCtl.isOpen();
 const toolbar = initToolbar($("toolbar"), ta, askingSomething);
-
-type ReplaceApproval = { discardText: string | null };
-
-async function guard(kind: Guard): Promise<ReplaceApproval | null> {
-  if (!appReady || askingSomething()) return null;
-  refreshDirty();
-  const needsConfirmation = hasWriting() && (kind === "new" || isDirty());
-  if (!needsConfirmation) return { discardText: null };
-  const confirmed = await confirmDiscard(kind, ta);
-  return confirmed ? { discardText: ta.value } : null;
-}
 
 sayOk.textContent = S.errOk;
 $("sayTitle").textContent = S.errTitle;
@@ -168,11 +166,9 @@ const tell = (message: string): void => say(sayDlg, sayBody, sayOk, message, ta)
 
 function loadDocument(text: string): void {
   ta.value = text;
-  lastSavedText = text;
   history.reset();
   layout();
   ta.setSelectionRange(0, 0);
-  refreshDirty();
   ta.focus();
   window.scrollTo(0, 0);
 }
@@ -205,12 +201,13 @@ function endFileAction(): void {
 
 btnNew.addEventListener("click", () => {
   void (async () => {
-    if (fileBusy || !(await guard("new"))) return;
-    if (!beginFileAction()) return;
+    if (fileBusy || !beginFileAction()) return;
     const unlock = lockDocument();
     try {
       files.forgetFile();
-      loadDocument("");
+      const { text } = drafts.startNew(ta.value);
+      loadDocument(text);
+      syncDocName();
     } catch {
       tell(S.errNew);
     } finally {
@@ -220,22 +217,35 @@ btnNew.addEventListener("click", () => {
   })();
 });
 
-btnOpen.addEventListener("click", () => {
-  void doOpen();
+const openMenuCtl = initOpenMenu(btnOpen, $("openMenu"), {
+  onFile: () => void doOpenFile(),
+  onDraft: () => draftsDialog.open(),
 });
 
-async function doOpen(): Promise<void> {
-  if (fileBusy) return;
-  const approval = await guard("open");
-  if (!approval) return;
-  if (!beginFileAction()) return;
+const draftsDialog = initDraftsDialog(draftsDlg, $("draftsList"), $("draftsEmpty"), $<HTMLButtonElement>("draftsClose"), ta, {
+  list: () => drafts.listDrafts(),
+  currentId: () => drafts.currentId(),
+  onChoose: (id) => {
+    const result = drafts.switchTo(ta.value, id);
+    if (!result) return;
+    const unlock = lockDocument();
+    files.forgetFile();
+    loadDocument(result.text);
+    syncDocName();
+    unlock();
+  },
+  onDelete: (id) => drafts.removeDraft(id),
+});
+
+async function doOpenFile(): Promise<void> {
+  if (fileBusy || !beginFileAction()) return;
   try {
     const opened = await files.open();
     if (!opened) {
       ta.focus();
       return;
     }
-    await acceptOpened(opened, approval.discardText);
+    await acceptOpened(opened);
   } catch {
     tell(S.errOpen);
   } finally {
@@ -243,18 +253,17 @@ async function doOpen(): Promise<void> {
   }
 }
 
-async function acceptOpened(opened: files.OpenedFile, approvedDiscard: string | null): Promise<void> {
+async function acceptOpened(opened: files.OpenedFile): Promise<void> {
   if (files.looksBinary(opened.text)) {
     tell(S.errNotText);
     return;
   }
-
-  refreshDirty();
-  if (isDirty() && hasWriting() && ta.value !== approvedDiscard && !(await guard("open"))) return;
   const unlock = lockDocument();
   try {
     files.adopt(opened);
-    loadDocument(opened.text);
+    const { text } = drafts.adoptFile(ta.value, opened.name, opened.text);
+    loadDocument(text);
+    syncDocName();
   } finally {
     unlock();
   }
@@ -268,18 +277,21 @@ async function doSave(): Promise<void> {
   if (!beginFileAction()) return;
   const text = ta.value;
   try {
-    let name: string | null;
-    if (files.canSaveToFile()) {
-      name = await files.save(text);
-    } else {
-      const chosen = await promptDownloadName(files.currentFileName() ?? files.suggestName(text), ta);
-      if (chosen === null) return;
-      name = await files.save(text, chosen);
+    const choice = await promptSave(drafts.currentName(), ta);
+    if (!choice) return;
+    const name = files.downloadName(choice.name);
+    if (choice.action === "draft") {
+      files.forgetFile();
+      drafts.saveAs(name, text);
+      ta.focus();
+      syncDocName();
+      return;
     }
+    const saved = await files.save(text, name);
     ta.focus();
-    if (name === null) return;
-    lastSavedText = text;
-    refreshDirty();
+    if (saved === null) return;
+    drafts.rename(saved, text);
+    syncDocName();
   } catch {
     tell(S.errSave);
   } finally {
@@ -287,26 +299,6 @@ async function doSave(): Promise<void> {
   }
 }
 
-btnPrint.addEventListener("click", () => {
-  printDoc.buildIfStale();
-  window.print();
-  ta.focus();
-});
-btnCopy.addEventListener("click", () => {
-  const { selectionStart, selectionEnd, selectionDirection } = ta;
-  ta.focus();
-  ta.select();
-  const copied = document.execCommand("copy");
-  ta.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
-  if (!copied) return;
-  clearTimeout(copyNoticeTimer);
-  copyNotice = true;
-  refreshDirty();
-  copyNoticeTimer = window.setTimeout(() => {
-    copyNotice = false;
-    refreshDirty();
-  }, 2000);
-});
 addEventListener("beforeprint", () => printDoc.buildIfStale());
 addEventListener("afterprint", () => ta.focus());
 
@@ -329,12 +321,9 @@ addEventListener("drop", (e) => {
     return;
   }
   void (async () => {
-    if (fileBusy) return;
-    const approval = await guard("open");
-    if (!approval) return;
-    if (!beginFileAction()) return;
+    if (fileBusy || !beginFileAction()) return;
     try {
-      await acceptOpened(await files.readDropped(file), approval.discardText);
+      await acceptOpened(await files.readDropped(file));
     } catch {
       tell(S.errOpen);
     } finally {
@@ -374,7 +363,7 @@ addEventListener("keydown", (e) => {
     void doSave();
   } else if (k === "o") {
     e.preventDefault();
-    void doOpen();
+    void doOpenFile();
   }
 });
 
@@ -404,13 +393,14 @@ btnSettings.addEventListener("click", () => {
   settings.open();
 });
 
-const history = initHistory(ta, $<HTMLButtonElement>("btnUndo"), $<HTMLButtonElement>("btnRedo"));
+const history = initHistory(ta);
 
 async function boot(): Promise<void> {
-  ta.value = "";
+  const { text } = drafts.boot();
+  ta.value = text;
   history.reset();
   layout();
-  refreshDirty();
+  syncDocName();
   void document.fonts.load('16px "Source Sans 3"').catch(() => {});
   try {
     await document.fonts.load('16px "Source Serif 4"');

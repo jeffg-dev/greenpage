@@ -33,17 +33,14 @@ test("nothing goes over the wire once the page is open", async ({ page, context 
   await page.evaluate(() => dispatchEvent(new Event("beforeprint")));
   await page.emulateMedia({ media: null });
   await page.locator("#btnNew").click();
-  await expect(page.locator("#dlg")).toBeVisible();
-  await page.locator("#dlgGo").click();
   await expect(page.locator("#ta")).toHaveValue("");
-  await expect(page.locator("#dlg")).toBeHidden();
   await settle(page);
   await page.waitForTimeout(1500);
 
   expect(seen, "zero requests to any origin after load").toEqual([]);
 });
 
-test("only settings persist; writing stays out of browser storage and caches", async ({ page }) => {
+test("only greenpage:* keys are used, and nothing leaves the device", async ({ page }) => {
   await page.goto("./");
   await ready(page);
   await swSettled(page);
@@ -92,10 +89,12 @@ test("only settings persist; writing stays out of browser storage and caches", a
 
   const local = storage["localStorage"] as Record<string, string>;
   const session = storage["sessionStorage"] as Record<string, string>;
-  expect(session).toEqual({});
-  expect(Object.keys(local)).toEqual([SETTINGS_KEY]);
+  expect(Object.keys(local).every((k) => k.startsWith("greenpage:")), "only greenpage:* keys in localStorage").toBe(true);
+  expect(Object.keys(session).every((k) => k.startsWith("greenpage:")), "only greenpage:* keys in sessionStorage").toBe(true);
   expect(JSON.parse(local[SETTINGS_KEY]!)).toEqual({ font: "sans", size: "large", theme: "light" });
-  expect(JSON.stringify(storage), "browser storage never contains writing").not.toContain(SECRET);
+  // Drafts are meant to be kept on this device, so the secret DOES show up
+  // here — the point of this test is that it goes no further than that.
+  expect(JSON.stringify(local)).toContain(SECRET);
   expect(storage["cookie"]).toBe("");
   expect(storage["idb"]).toEqual([]);
 
@@ -129,6 +128,6 @@ test("About identifies the build and links to the companion site without loading
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const origin = new URL(page.url()).origin;
   await expect(page.locator("#appVersion")).toHaveText(process.env.CP_BUILD_REF && process.env.CP_BUILD_REF !== "main" ? process.env.CP_BUILD_REF : "development edition");
-  await expect(page.locator("#settingsAbout a")).toHaveAttribute("href", "https://www.cleanpage.org");
+  await expect(page.locator("#settingsAbout a")).toHaveAttribute("href", "https://greenpage.app");
   expect(requested.filter((url) => new URL(url).origin !== origin), "opening About makes no external requests").toEqual([]);
 });

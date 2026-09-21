@@ -8,8 +8,6 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-const BROWSER_OWNED = ["btnPrint"];
-
 const acts: Record<string, (page: Page, keys: string) => Promise<void>> = {
   btnNew: async (page, keys) => {
     await page.locator("#ta").click();
@@ -18,8 +16,6 @@ const acts: Record<string, (page: Page, keys: string) => Promise<void>> = {
     await page.keyboard.press(keys);
     await expect(page.locator("#btnNew")).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(page.locator("#dlg")).toBeVisible();
-    await page.locator("#dlgGo").click();
     await expect(page.locator("#ta")).toHaveValue("");
   },
   btnOpen: async (page, keys) => {
@@ -41,36 +37,20 @@ const acts: Record<string, (page: Page, keys: string) => Promise<void>> = {
     await page.keyboard.press(keys);
     await expect(page.locator("#downloadDlg")).toBeVisible();
   },
-  btnUndo: async (page, keys) => {
-    await page.locator("#ta").click();
-    await page.keyboard.type("a sentence");
-    await settle(page);
-    await page.keyboard.press(keys);
-    await expect(page.locator("#ta")).not.toHaveValue("a sentence");
-  },
-  btnRedo: async (page, keys) => {
-    await page.locator("#ta").click();
-    await page.keyboard.type("a sentence");
-    await settle(page);
-    await page.keyboard.press("Control+Z");
-    await expect(page.locator("#ta")).not.toHaveValue("a sentence");
-    await page.keyboard.press(keys);
-    await expect(page.locator("#ta")).toHaveValue("a sentence");
-  },
   btnSettings: async (page, keys) => {
     await page.keyboard.press(keys);
     await expect(page.locator("#settingsDlg")).toBeVisible();
   },
 };
 
-test("the toolbar advertises no shortcut that nothing performs", async ({ page }) => {
+test("the bar advertises no shortcut that nothing performs", async ({ page }) => {
   await open(page);
   const advertised = await page.evaluate(() =>
-    Array.from(document.querySelectorAll<HTMLElement>("#toolbar [aria-keyshortcuts]")).map(
+    Array.from(document.querySelectorAll<HTMLElement>("#bar [aria-keyshortcuts]")).map(
       (el) => el.id,
     ),
   );
-  expect(advertised.sort()).toEqual([...Object.keys(acts), ...BROWSER_OWNED].sort());
+  expect(advertised.sort()).toEqual(Object.keys(acts).sort());
 });
 
 for (const [id, act] of Object.entries(acts)) {

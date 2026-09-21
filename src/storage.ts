@@ -1,6 +1,6 @@
 import type { Settings } from "./settings.js";
 
-export const SETTINGS_KEY = "cleanpage:settings:v1";
+export const SETTINGS_KEY = "greenpage:settings:v1";
 
 function read(key: string): unknown {
   try {

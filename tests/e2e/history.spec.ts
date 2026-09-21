@@ -6,24 +6,39 @@ test.beforeEach(({ browserName }) => {
   test.skip(!!unavailable, unavailable ?? "");
 });
 
+async function undoDisabled(page: Page): Promise<boolean> {
+  return (await page.locator("#ta").getAttribute("data-undo-disabled")) === "true";
+}
+async function redoDisabled(page: Page): Promise<boolean> {
+  return (await page.locator("#ta").getAttribute("data-redo-disabled")) === "true";
+}
+async function pressUndo(page: Page): Promise<void> {
+  await page.locator("#ta").focus();
+  await page.keyboard.press("Control+z");
+}
+async function pressRedo(page: Page): Promise<void> {
+  await page.locator("#ta").focus();
+  await page.keyboard.press("Control+Shift+z");
+}
+
 async function undoToBoundary(page: Page): Promise<number> {
   let steps = 0;
-  while (steps < 100 && await page.locator("#btnUndo").getAttribute("aria-disabled") === "false") {
-    await page.locator("#btnUndo").click();
+  while (steps < 100 && !(await undoDisabled(page))) {
+    await pressUndo(page);
     steps += 1;
   }
   return steps;
 }
 
 async function redoSteps(page: Page, steps: number): Promise<void> {
-  for (let i = 0; i < steps; i += 1) await page.locator("#btnRedo").click();
+  for (let i = 0; i < steps; i += 1) await pressRedo(page);
 }
 
-async function stepUntil(page: Page, button: "#btnUndo" | "#btnRedo", value: string): Promise<void> {
+async function stepUntil(page: Page, direction: "undo" | "redo", value: string): Promise<void> {
   const ta = page.locator("#ta");
-  for (let step = 0; step < 10 && await ta.inputValue() !== value; step += 1) {
-    await expect(page.locator(button)).toHaveAttribute("aria-disabled", "false");
-    await page.locator(button).click();
+  for (let step = 0; step < 10 && (await ta.inputValue()) !== value; step += 1) {
+    expect(await (direction === "undo" ? undoDisabled(page) : redoDisabled(page))).toBe(false);
+    await (direction === "undo" ? pressUndo(page) : pressRedo(page));
   }
   await expect(ta).toHaveValue(value);
 }
@@ -35,58 +50,34 @@ test.beforeEach(async ({ page }) => {
 
 test("Undo and Redo use native typing groups and keep the writer in the page", async ({ page }) => {
   const ta = page.locator("#ta");
-  const undo = page.locator("#btnUndo");
-  const redo = page.locator("#btnRedo");
-  await expect(undo).toHaveAttribute("aria-disabled", "true");
-  await expect(redo).toHaveAttribute("aria-disabled", "true");
+  expect(await undoDisabled(page)).toBe(true);
+  expect(await redoDisabled(page)).toBe(true);
   await ta.focus();
   await page.keyboard.type("A little story");
-  await expect(undo).toHaveAttribute("aria-disabled", "false");
+  expect(await undoDisabled(page)).toBe(false);
   const steps = await undoToBoundary(page);
   await expect(ta).toHaveValue("");
   await expect(ta).toBeFocused();
-  await expect(undo).toHaveAttribute("aria-disabled", "true");
+  expect(await undoDisabled(page)).toBe(true);
   await redoSteps(page, steps);
   await expect(ta).toHaveValue("A little story");
   await expect(ta).toBeFocused();
-  await expect(redo).toHaveAttribute("aria-disabled", "true");
+  expect(await redoDisabled(page)).toBe(true);
   await page.keyboard.type(" continues");
   await expect(ta).toHaveValue("A little story continues");
 });
 
-test("keyboard shortcuts and toolbar buttons share one native history", async ({ page }) => {
+test("undo and redo via keyboard share one native history", async ({ page }) => {
   const ta = page.locator("#ta");
   await ta.focus();
-  await page.keyboard.type("Keyboard and buttons");
+  await page.keyboard.type("Keyboard history");
   await page.keyboard.press("Control+z");
-  await expect(ta).not.toHaveValue("Keyboard and buttons");
-  await page.locator("#btnRedo").click();
-  await expect(ta).toHaveValue("Keyboard and buttons");
-  await page.locator("#btnUndo").click();
+  await expect(ta).not.toHaveValue("Keyboard history");
   await page.keyboard.press("Control+Shift+z");
-  await expect(ta).toHaveValue("Keyboard and buttons");
-});
-
-test("keyboard activation keeps toolbar focus even when the action becomes unavailable", async ({ page }) => {
-  const ta = page.locator("#ta");
-  const undo = page.locator("#btnUndo");
-  await ta.focus();
-  await page.keyboard.type("X");
-  await undo.focus();
-  await page.keyboard.press("Enter");
-  await expect(ta).toHaveValue("");
-  await expect(undo).toHaveAttribute("aria-disabled", "true");
-  await expect(undo).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(ta).toHaveValue("");
-  await expect(undo).toBeFocused();
-  await page.locator("#btnRedo").focus();
-  await page.keyboard.press("Space");
-  await expect(ta).toHaveValue("X");
-  await expect(page.locator("#btnRedo")).toBeFocused();
-  await undo.click();
-  await expect(ta).toHaveValue("");
-  await expect(ta).toBeFocused();
+  await expect(ta).toHaveValue("Keyboard history");
+  await page.keyboard.press("Control+z");
+  await page.keyboard.press("Control+Shift+z");
+  await expect(ta).toHaveValue("Keyboard history");
 });
 
 test("replacement, deletion back to an empty page, and fresh edits remain undoable", async ({ page }) => {
@@ -96,18 +87,18 @@ test("replacement, deletion back to an empty page, and fresh edits remain undoab
   await ta.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(2, 5));
   await page.keyboard.type("dog");
   await expect(ta).toHaveValue("A dog");
-  await stepUntil(page, "#btnUndo", "A cat");
-  await stepUntil(page, "#btnRedo", "A dog");
+  await stepUntil(page, "undo", "A cat");
+  await stepUntil(page, "redo", "A dog");
   await page.keyboard.press("Control+a");
   await page.keyboard.press("Backspace");
   await expect(ta).toHaveValue("");
-  await expect(page.locator("#btnUndo")).toHaveAttribute("aria-disabled", "false");
-  await page.locator("#btnUndo").click();
+  expect(await undoDisabled(page)).toBe(false);
+  await pressUndo(page);
   await expect(ta).toHaveValue("A dog");
   await page.keyboard.press("End");
   await page.keyboard.type(" runs");
   await expect(ta).toHaveValue("A dog runs");
-  await expect(page.locator("#btnRedo")).toHaveAttribute("aria-disabled", "true");
+  expect(await redoDisabled(page)).toBe(true);
 });
 
 test("Undo does not rewind applied settings and reload starts fresh history", async ({ page }) => {
@@ -123,8 +114,8 @@ test("Undo does not rewind applied settings and reload starts fresh history", as
   await page.reload();
   await ready(page);
   await expect(ta).toHaveValue("");
-  await expect(page.locator("#btnUndo")).toHaveAttribute("aria-disabled", "true");
-  await expect(page.locator("#btnRedo")).toHaveAttribute("aria-disabled", "true");
+  expect(await undoDisabled(page)).toBe(true);
+  expect(await redoDisabled(page)).toBe(true);
 });
 
 for (const action of ["new", "open"] as const) {
@@ -140,13 +131,16 @@ for (const action of ["new", "open"] as const) {
     const ta = page.locator("#ta");
     await ta.focus();
     await page.keyboard.type("OLD DOCUMENT");
-    await page.locator(action === "new" ? "#btnNew" : "#btnOpen").click();
-    await expect(page.locator("#dlg")).toBeVisible();
-    await page.locator("#dlgGo").click();
+    if (action === "new") {
+      await page.locator("#btnNew").click();
+    } else {
+      await page.locator("#btnOpen").click();
+      await page.locator("#openMenuFile").click();
+    }
     const baseline = action === "new" ? "" : "New story";
     await expect(ta).toHaveValue(baseline);
-    await expect(page.locator("#btnUndo")).toHaveAttribute("aria-disabled", "true");
-    await expect(page.locator("#btnRedo")).toHaveAttribute("aria-disabled", "true");
+    expect(await undoDisabled(page)).toBe(true);
+    expect(await redoDisabled(page)).toBe(true);
     await page.keyboard.press("Control+z");
     await page.keyboard.press("Control+Shift+z");
     await expect(ta).toHaveValue(baseline);
@@ -158,7 +152,7 @@ for (const action of ["new", "open"] as const) {
     await expect(ta).toHaveValue(baseline);
     await redoSteps(page, steps);
     await expect(ta).toHaveValue(baseline + " added");
-    await expect(page.locator("#btnRedo")).toHaveAttribute("aria-disabled", "true");
+    expect(await redoDisabled(page)).toBe(true);
     await page.keyboard.press("Control+Shift+z");
     await expect(ta).toHaveValue(baseline + " added");
   });
@@ -197,7 +191,7 @@ test("returning to the initial text does not erase earlier editing history", asy
   await page.keyboard.press("Control+a");
   await page.keyboard.press("Backspace");
   await page.keyboard.type("DEF");
-  await stepUntil(page, "#btnUndo", "ABC");
+  await stepUntil(page, "undo", "ABC");
 });
 
 test("a new document can undo deletion, redo it, retype, then undo beyond the same empty text", async ({ page }) => {
@@ -211,7 +205,6 @@ test("a new document can undo deletion, redo it, retype, then undo beyond the sa
     editor.addEventListener("input", () => state.resetInputValues.push(editor.value));
   });
   await page.locator("#btnNew").click();
-  await page.locator("#dlgGo").click();
   await expect(ta).toHaveValue("");
   const reset = await page.evaluate(() => {
     const state = window as unknown as { resetInputValues: string[] };
@@ -221,22 +214,22 @@ test("a new document can undo deletion, redo it, retype, then undo beyond the sa
   await page.keyboard.insertText("ABC");
   await page.keyboard.press("Control+a");
   await page.keyboard.press("Backspace");
-  await page.locator("#btnUndo").click();
+  await pressUndo(page);
   await expect(ta).toHaveValue("ABC");
-  await page.locator("#btnRedo").click();
+  await pressRedo(page);
   await expect(ta).toHaveValue("");
   await page.keyboard.insertText("DEF");
-  await page.locator("#btnUndo").click();
+  await pressUndo(page);
   await expect(ta).toHaveValue("");
-  await expect(page.locator("#btnUndo")).toHaveAttribute("aria-disabled", "false");
-  await page.locator("#btnUndo").click();
+  expect(await undoDisabled(page)).toBe(false);
+  await pressUndo(page);
   await expect(ta).toHaveValue("ABC");
-  await page.locator("#btnUndo").click();
+  await pressUndo(page);
   await expect(ta).toHaveValue("");
-  await expect(page.locator("#btnUndo")).toHaveAttribute("aria-disabled", "true");
+  expect(await undoDisabled(page)).toBe(true);
 });
 
-test("toolbar Undo preserves the viewport while restoring the native selection", async ({ page }) => {
+test("keyboard Undo preserves the viewport while restoring the native selection", async ({ page }) => {
   const ta = page.locator("#ta");
   const story = Array.from({ length: 80 }, (_, index) => `Line ${index + 1}: a story continues.`).join("\n");
   await ta.focus();
@@ -249,18 +242,14 @@ test("toolbar Undo preserves the viewport while restoring the native selection",
   await page.keyboard.insertText("New ");
   await settle(page);
   const scroll = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
-  // Locator.click scrolls sticky controls before pointerdown in Chromium and
-  // WebKit. Click the already-visible control as a real pointer would instead.
-  const button = await page.locator("#btnUndo").boundingBox();
-  expect(button).not.toBeNull();
-  await page.mouse.click(button!.x + button!.width / 2, button!.y + button!.height / 2);
+  await page.keyboard.press("Control+z");
   await expect(ta).toHaveValue(story);
   await settle(page);
   expect(await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual(scroll);
   expect(await ta.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(story.indexOf("Line 60:"));
 });
 
-for (const action of ["toolbar", "keyboard", "beforeinput"] as const) {
+for (const action of ["keyboard", "beforeinput"] as const) {
   test(`writing ${action} Undo skips edits in the Download filename`, async ({ page }) => {
     await page.evaluate(() => {
       (window as unknown as Record<string, unknown>)["showSaveFilePicker"] = undefined;
@@ -283,19 +272,17 @@ for (const action of ["toolbar", "keyboard", "beforeinput"] as const) {
     await downloaded;
     await expect(ta).toBeFocused();
     if (action === "keyboard") await page.keyboard.press("Control+z");
-    else if (action === "toolbar") await page.locator("#btnUndo").click();
     else await ta.evaluate((el) => el.dispatchEvent(new InputEvent("beforeinput", {
       inputType: "historyUndo", cancelable: true, bubbles: true,
     })));
     await expect(ta).toHaveValue("");
     if (action === "keyboard") await page.keyboard.press("Control+Shift+z");
-    else if (action === "toolbar") await page.locator("#btnRedo").click();
     else await ta.evaluate((el) => el.dispatchEvent(new InputEvent("beforeinput", {
       inputType: "historyRedo", cancelable: true, bubbles: true,
     })));
     await expect(ta).toHaveValue("The writing stays separate");
     await expect(ta).toBeFocused();
-    await expect(page.locator("#btnRedo")).toHaveAttribute("aria-disabled", "true");
+    expect(await redoDisabled(page)).toBe(true);
   });
 }
 
@@ -304,7 +291,7 @@ for (const failure of ["unsupported", "no-progress", "only-filename-progress"] a
     const ta = page.locator("#ta");
     await ta.focus();
     await page.keyboard.insertText("Keep this writing safe");
-    await expect(page.locator("#btnUndo")).toHaveAttribute("aria-disabled", "false");
+    expect(await undoDisabled(page)).toBe(false);
     await page.evaluate((mode) => {
       const state = window as unknown as { historyCommandCalls: number };
       state.historyCommandCalls = 0;
@@ -319,11 +306,11 @@ for (const failure of ["unsupported", "no-progress", "only-filename-progress"] a
         return mode !== "unsupported";
       };
     }, failure);
-    await page.locator("#btnUndo").click();
+    await pressUndo(page);
     await expect(ta).toHaveValue("Keep this writing safe");
     await expect(ta).toBeFocused();
-    await expect(page.locator("#btnUndo")).toHaveAttribute("aria-disabled", "true");
-    await expect(page.locator("#btnRedo")).toHaveAttribute("aria-disabled", "true");
+    expect(await undoDisabled(page)).toBe(true);
+    expect(await redoDisabled(page)).toBe(true);
     expect(await page.evaluate(() => (window as unknown as { historyCommandCalls: number }).historyCommandCalls))
       .toBe(failure === "only-filename-progress" ? 100 : 1);
   });
@@ -361,11 +348,10 @@ for (const failure of ["unsupported", "no-progress", "throws", "never-finishes"]
       };
     }, failure);
     await page.locator("#btnNew").click();
-    await page.locator("#dlgGo").click();
     await expect(ta).toHaveValue("");
     await expect(ta).toBeEditable();
-    await expect(page.locator("#btnUndo")).toHaveAttribute("aria-disabled", "true");
-    await expect(page.locator("#btnRedo")).toHaveAttribute("aria-disabled", "true");
+    expect(await undoDisabled(page)).toBe(true);
+    expect(await redoDisabled(page)).toBe(true);
     const result = await page.evaluate(() => {
       const state = window as unknown as {
         resetCommandCalls: number;

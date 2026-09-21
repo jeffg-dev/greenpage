@@ -13,9 +13,10 @@ test.beforeEach(async ({ page }) => {
 
 const STORY = "My Tide Pool Story\n\nWe saw a crab. It was orange.\n\tIt hid under a rock.\n";
 
-async function downloadWriting(page: import("@playwright/test").Page) {
+async function downloadWriting(page: import("@playwright/test").Page, name = "My Tide Pool Story") {
   await page.locator("#btnSave").click();
   await expect(page.locator("#downloadDlg")).toBeVisible();
+  await page.locator("#downloadName").fill(name);
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.locator("#downloadGo").click(),
@@ -26,7 +27,6 @@ async function downloadWriting(page: import("@playwright/test").Page) {
 test("Download confirms a .txt name from the first line and writes exact bytes", async ({ page }) => {
   await open(page);
   await setText(page, STORY);
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
 
   const download = await downloadWriting(page);
   expect(download.suggestedFilename()).toBe("My Tide Pool Story.txt");
@@ -40,7 +40,7 @@ test("Download confirms a .txt name from the first line and writes exact bytes",
 
   await settle(page);
   await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
-  expect(await page.locator("#status").innerText()).toContain("My Tide Pool Story.txt");
+  await expect(page.locator("#docName")).toHaveText("My Tide Pool Story.txt");
   await expect(page.locator("#ta"), "the cursor comes straight back").toBeFocused();
 });
 
@@ -54,7 +54,6 @@ test("after a download, edits mark writing unsaved and undo restores the exporte
   await page.locator("#ta").click();
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.type("A pelican flew over.");
-  await settle(page);
   await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
   await expect(page.locator("#statusWord")).toBeEmpty();
 
@@ -64,7 +63,7 @@ test("after a download, edits mark writing unsaved and undo restores the exporte
   await settle(page);
   expect(await page.inputValue("#ta")).toBe(STORY);
   await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
-  expect(await page.locator("#status").innerText()).toContain("My Tide Pool Story.txt");
+  await expect(page.locator("#docName")).toHaveText("My Tide Pool Story.txt");
 });
 
 test("Ctrl+S asks for a filename and downloads using only the keyboard", async ({ page }) => {
@@ -73,6 +72,8 @@ test("Ctrl+S asks for a filename and downloads using only the keyboard", async (
   await page.keyboard.press("ControlOrMeta+s");
   await expect(page.locator("#downloadDlg")).toBeVisible();
   await expect(page.locator("#downloadName")).toBeFocused();
+  await page.keyboard.press("Control+a");
+  await page.keyboard.type("My Tide Pool Story");
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.keyboard.press("Enter"),
@@ -83,11 +84,12 @@ test("Ctrl+S asks for a filename and downloads using only the keyboard", async (
 test("Download waits for a chosen filename and remembers the edited name", async ({ page }) => {
   await open(page);
   await setText(page, STORY);
+  const currentName = await page.locator("#docName").innerText();
   const downloads: string[] = [];
   page.on("download", (download) => downloads.push(download.suggestedFilename()));
   await page.locator("#btnSave").click();
   await expect(page.locator("#downloadDlg")).toBeVisible();
-  await expect(page.locator("#downloadName")).toHaveValue("My Tide Pool Story.txt");
+  await expect(page.locator("#downloadName")).toHaveValue(currentName);
   await expect(page.locator("#downloadName")).toBeFocused();
   expect(downloads, "opening the dialog does not download anything").toEqual([]);
 
@@ -118,12 +120,11 @@ for (const cancel of ["button", "escape"] as const) {
     await expect(page.locator("#downloadDlg")).toBeHidden();
     await expect(page.locator("#ta")).toBeFocused();
     await expect(page.locator("#ta")).toHaveValue(STORY);
-    await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
+    await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
     await expect(page.locator("#btnSave")).toBeEnabled();
     expect(downloads).toEqual([]);
     await page.locator("#btnNew").click();
-    await expect(page.locator("#dlg")).toBeVisible();
-    await page.locator("#dlgKeep").click();
+    await expect(page.locator("#ta")).toHaveValue("");
   });
 }
 
@@ -155,10 +156,15 @@ async function openFile(
   bytes: Buffer,
   via: "button" | "keyboard" = "button",
 ): Promise<void> {
-  const [chooser] = await Promise.all([
-    page.waitForEvent("filechooser"),
-    via === "button" ? page.locator("#btnOpen").click() : page.keyboard.press("ControlOrMeta+o"),
-  ]);
+  const trigger = async (): Promise<void> => {
+    if (via === "button") {
+      await page.locator("#btnOpen").click();
+      await page.locator("#openMenuFile").click();
+    } else {
+      await page.keyboard.press("ControlOrMeta+o");
+    }
+  };
+  const [chooser] = await Promise.all([page.waitForEvent("filechooser"), trigger()]);
   await chooser.setFiles({ name, mimeType: "text/plain", buffer: bytes });
   await settle(page);
 }
@@ -172,7 +178,7 @@ test("Open reads a file in, stripping the BOM and normalising CRLF and lone CR",
 
   expect(await page.inputValue("#ta")).toBe("line one\nline two\nline three\nend\n");
   await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
-  expect(await page.locator("#status").innerText()).toContain("from-the-teacher.txt");
+  await expect(page.locator("#docName")).toHaveText("from-the-teacher.txt");
   await expect(page.locator("#ta")).toBeFocused();
   expect(await page.evaluate(() => (document.getElementById("ta") as HTMLTextAreaElement).selectionStart)).toBe(0);
 });
@@ -195,9 +201,10 @@ test("a selected file can finish reading after the picker cancellation grace per
     };
   });
   await open(page);
+  await page.locator("#btnOpen").click();
   const [chooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.locator("#btnOpen").click(),
+    page.locator("#openMenuFile").click(),
   ]);
   // Native file choosers restore window focus before delivering change.
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
@@ -207,35 +214,8 @@ test("a selected file can finish reading after the picker cancellation grace per
     buffer: Buffer.from("My file arrived from the cloud.\n"),
   });
   await expect(page.locator("#ta")).toHaveValue("My file arrived from the cloud.\n");
-  await expect(page.locator("#status")).toContainText("slow-drive.txt");
+  await expect(page.locator("#docName")).toHaveText("slow-drive.txt");
   await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
-});
-
-test("Open asks before replacing unsaved writing", async ({ page }) => {
-  await open(page);
-  await setText(page, "words in progress");
-
-  await page.locator("#btnOpen").click();
-  await expect(page.locator("#dlg")).toBeVisible();
-  await expect(page.locator("#dlgKeep")).toBeFocused();
-  await page.locator("#dlgKeep").click();
-  await expect(page.locator("#dlg")).toBeHidden();
-  expect(await page.inputValue("#ta")).toBe("words in progress");
-
-  // Saying yes goes on to the picker.
-  await page.locator("#btnOpen").click();
-  await expect(page.locator("#dlg")).toBeVisible();
-  const [chooser] = await Promise.all([
-    page.waitForEvent("filechooser"),
-    page.locator("#dlgGo").click(),
-  ]);
-  await chooser.setFiles({
-    name: "replacement.txt",
-    mimeType: "text/plain",
-    buffer: Buffer.from("the new words\n", "utf8"),
-  });
-  await settle(page);
-  expect(await page.inputValue("#ta")).toBe("the new words\n");
 });
 
 test("a file that is not plain writing is refused, and the document is untouched", async ({
@@ -244,15 +224,11 @@ test("a file that is not plain writing is refused, and the document is untouched
   await open(page);
   await setText(page, "the words already on the page");
 
-  // The child has already said "yes, replace my writing" — and the file still
-  // must not be allowed to eat it. This is the worst case, so test this one.
-  await page.locator("#btnOpen").click();
-  await expect(page.locator("#dlg")).toBeVisible();
-
   const binary = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...Array(400).fill(0xff)]);
+  await page.locator("#btnOpen").click();
   const [chooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.locator("#dlgGo").click(),
+    page.locator("#openMenuFile").click(),
   ]);
   await chooser.setFiles({ name: "photo.png", mimeType: "text/plain", buffer: binary });
   await settle(page);
@@ -278,7 +254,7 @@ test("a dropped .txt goes through the same guarded path", async ({ page }) => {
   });
   await settle(page);
   expect(await page.inputValue("#ta")).toBe("dropped words\nsecond line\n");
-  expect(await page.locator("#status").innerText()).toContain("dropped.txt");
+  await expect(page.locator("#docName")).toHaveText("dropped.txt");
 });
 
 test("dropping something that is not writing is refused, not opened by the browser", async ({

@@ -1,6 +1,6 @@
 {
-  "name": "Clean Page",
-  "short_name": "Clean Page",
+  "name": "Green Page",
+  "short_name": "Green Page",
   "description": "A web page that behaves like a sheet of paper in a typewriter.",
   "start_url": "./",
   "scope": "./",

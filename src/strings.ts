@@ -1,19 +1,16 @@
 export const S = {
-  appName: "Clean Page",
+  appName: "Green Page",
 
-  fileGroup: "File",
   toolbar: "Writing tools",
-  editGroup: "Edit",
   newDoc: "New",
   open: "Open",
+  openFile: "File…",
+  openDraft: "Draft…",
   save: "Save",
   download: "Download",
-  print: "Print",
-  copy: "Copy",
-  copied: "Copied to clipboard",
-  undo: "Undo",
-  redo: "Redo",
   settings: "Settings",
+  rename: "Rename",
+  docNameLabel: "Document name",
 
   letters: "Letters",
   lettersSerif: "Serif",
@@ -28,17 +25,23 @@ export const S = {
   resetSettings: "Reset",
   applySettings: "Apply",
   cancel: "Cancel",
+  close: "Close",
   previewLetters: "Aa Bb",
   previewSize: "Aa",
 
   about: "About",
-  website: "https://www.cleanpage.org",
+  website: "https://greenpage.app",
   newTab: "(opens in a new tab)",
 
-  downloadTitle: "Download your writing",
-  downloadName: "File name",
-  downloadNameRequired: "Enter a file name.",
-  downloadNameInvalid: "A file name needs some letters or numbers in it.",
+  saveTitle: "Save your writing",
+  saveName: "Name",
+  saveDraft: "Save draft",
+  nameRequired: "Enter a name.",
+  nameInvalid: "A name needs some letters or numbers in it.",
+
+  draftsTitle: "Drafts",
+  draftsEmpty: "No drafts yet.",
+  draftsDelete: (name: string) => `Delete ${name}`,
 
   // The writing surface
   pageLabel: "Your writing",
@@ -46,23 +49,10 @@ export const S = {
   tabHintMac: "To reach the buttons, press Control, Option and F. Escape returns to writing.",
 
   // Saved indicator
-  saved: "Changes saved",
-  // The chip renders the words and the filename in two separate spans, so the
-  // prefix is a string and not a template: `savedPrefix + name` is what the
-  // child reads and what `role="status"` announces.
-  savedPrefix: "Changes saved — ",
+  saved: "Saved",
 
   // Page count, announced to screen readers only
   pageCount: (n: number) => (n === 1 ? "Now 1 page." : `Now ${n} pages.`),
-
-  // New / Open confirmation dialog
-  dlgNewTitle: "Start a new page?",
-  dlgNewBody: "This clears this page. Changes you have not saved will be gone.",
-  dlgNewGo: "Start new page",
-  dlgOpenTitle: "Open another file?",
-  dlgOpenBody: "This opens another file. Changes you have not saved will be gone.",
-  dlgOpenGo: "Open the file",
-  dlgKeep: "Keep writing",
 
   // Problems, in plain words
   errSave: "Sorry, that did not save. Try again.",
@@ -72,4 +62,5 @@ export const S = {
   errTitle: "Something went wrong",
   errOk: "OK",
   settingsStorageError: "Could not keep your settings on this device.",
+  draftsStorageError: "Could not keep your drafts on this device.",
 } as const;

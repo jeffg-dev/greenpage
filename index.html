@@ -8,35 +8,42 @@
       name="description"
       content="A web page that behaves like a sheet of paper in a typewriter. Nothing you write leaves your device."
     />
-    <title>Clean Page</title>
+    <title>Green Page</title>
     <link rel="preload" href="./fonts/SourceSerif4-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <script type="module" src="./src/main.ts"></script>
   </head>
   <body>
-    <h1 class="vh">Clean Page</h1>
+    <h1 class="vh">Green Page</h1>
     <header id="bar">
       <div id="toolbar" role="toolbar" aria-label="Writing tools">
-      <div class="grp" role="group" aria-label="File">
-        <button type="button" id="btnNew" class="btn" title="New document — Alt+F, then Enter" aria-keyshortcuts="Alt+F">New</button>
-        <button type="button" id="btnOpen" class="btn" tabindex="-1" title="Open a text file — Ctrl+O" aria-keyshortcuts="Control+O">Open</button>
-        <button type="button" id="btnSave" class="btn" tabindex="-1" title="Save or download — Ctrl+S" aria-keyshortcuts="Control+S">Save</button>
-        <button type="button" id="btnPrint" class="btn" tabindex="-1" title="Print — Ctrl+P" aria-keyshortcuts="Control+P">Print</button>
-        <button type="button" id="btnCopy" class="btn" tabindex="-1" title="Copy all writing">Copy</button>
+        <button type="button" id="btnNew" class="btn" title="New document — Alt+F, then Enter" aria-keyshortcuts="Alt+F">
+          <span class="glyph" aria-hidden="true">&#10010;</span><span class="vh">New</span>
+        </button>
+        <button type="button" id="btnOpen" class="btn" tabindex="-1" title="Open — Ctrl+O" aria-keyshortcuts="Control+O" aria-haspopup="menu" aria-expanded="false" aria-controls="openMenu">
+          <span class="glyph" aria-hidden="true">&#10064;</span><span class="vh">Open</span>
+        </button>
+        <button type="button" id="btnSave" class="btn" tabindex="-1" title="Save — Ctrl+S" aria-keyshortcuts="Control+S">
+          <span class="glyph" aria-hidden="true">&#10515;</span><span class="vh" id="btnSaveLabel">Save</span>
+        </button>
       </div>
 
-      <div class="grp" role="group" aria-label="Edit">
-        <button type="button" id="btnUndo" class="btn" aria-disabled="true" tabindex="-1" title="Undo — Ctrl+Z" aria-keyshortcuts="Control+Z">Undo</button>
-        <button type="button" id="btnRedo" class="btn" aria-disabled="true" tabindex="-1" title="Redo — Ctrl+Shift+Z" aria-keyshortcuts="Control+Shift+Z">Redo</button>
+      <div id="openMenu" role="menu" aria-label="Open" hidden>
+        <button type="button" id="openMenuFile" role="menuitem" class="menu-item">File…</button>
+        <button type="button" id="openMenuDraft" role="menuitem" class="menu-item">Draft…</button>
       </div>
+
+      <button type="button" id="docName" title="Rename"></button>
+      <input type="text" id="docNameInput" hidden aria-label="Document name" maxlength="200" autocomplete="off" spellcheck="false" />
 
       <p id="status" role="status" data-state="clean" data-empty="true">
-        <span class="gl" aria-hidden="true">&#10003;</span><span id="statusText"><span id="statusWord">Changes saved</span><span id="statusName"></span></span>
+        <span class="gl" aria-hidden="true">&#10003;</span><span id="statusWord"></span>
       </p>
 
-      <button type="button" id="btnSettings" class="btn" tabindex="-1" title="Settings — Alt+T" aria-keyshortcuts="Alt+T">Settings</button>
-      </div>
+      <button type="button" id="btnSettings" class="btn" title="Settings — Alt+T" aria-keyshortcuts="Alt+T">
+        <span class="glyph" aria-hidden="true">&#9881;&#65038;</span><span class="vh">Settings</span>
+      </button>
     </header>
 
     <main id="desk">
@@ -89,8 +96,8 @@
         </fieldset>
         <section id="settingsAbout" aria-labelledby="aboutTitle">
           <h3 id="aboutTitle">About</h3>
-          <p>Clean Page, <span id="appVersion"></span></p>
-          <p><a href="https://www.cleanpage.org" target="_blank" rel="noopener noreferrer">https://www.cleanpage.org<span class="vh" id="newTab"></span></a></p>
+          <p>Green Page, <span id="appVersion"></span></p>
+          <p><a href="https://greenpage.app" target="_blank" rel="noopener noreferrer">https://greenpage.app<span class="vh" id="newTab"></span></a></p>
         </section>
         <div class="dlg-row settings-actions">
           <button type="button" id="settingsReset" class="btn">Reset</button>
@@ -102,23 +109,33 @@
 
     <dialog id="downloadDlg" aria-labelledby="downloadTitle">
       <form id="downloadForm" novalidate>
-        <h2 id="downloadTitle">Download your writing</h2>
-        <label class="field-label" for="downloadName">File name</label>
+        <h2 id="downloadTitle">Save your writing</h2>
+        <label class="field-label" for="downloadName">Name</label>
         <input type="text" id="downloadName" required maxlength="200" autocomplete="off" spellcheck="false" aria-describedby="downloadNameError" />
         <p id="downloadNameError"></p>
         <div class="dlg-row">
           <button type="button" id="downloadCancel" class="btn">Cancel</button>
+          <button type="button" id="saveDraftGo" class="btn">Save draft</button>
           <button type="submit" id="downloadGo" class="btn btn-safe">Download</button>
         </div>
       </form>
     </dialog>
 
-    <dialog id="dlg" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
-      <h2 id="dlgTitle">Start a new page?</h2>
-      <p id="dlgBody">This clears this page. Changes you have not saved will be gone.</p>
+    <dialog id="draftsDlg" aria-labelledby="draftsTitle">
+      <h2 id="draftsTitle">Drafts</h2>
+      <p id="draftsEmpty" hidden>No drafts yet.</p>
+      <ul id="draftsList"></ul>
       <div class="dlg-row">
-        <button type="button" id="dlgKeep" class="btn btn-safe">Keep writing</button>
-        <button type="button" id="dlgGo" class="btn">Start new page</button>
+        <button type="button" id="draftsClose" class="btn">Close</button>
+      </div>
+    </dialog>
+
+    <dialog id="dlg" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
+      <h2 id="dlgTitle">Reset to default settings?</h2>
+      <p id="dlgBody">Letters, font size and colors go back to how they started.</p>
+      <div class="dlg-row">
+        <button type="button" id="dlgKeep" class="btn btn-safe">Cancel</button>
+        <button type="button" id="dlgGo" class="btn">Reset</button>
       </div>
     </dialog>
 
