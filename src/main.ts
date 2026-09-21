@@ -106,8 +106,6 @@ sheet.addEventListener("pointerdown", (e) => {
 
 let lastStatus = "";
 let appReady = false;
-let copyNotice = false;
-let copyNoticeTimer = 0;
 
 const hasWriting = (): boolean => ta.value.trim().length > 0;
 

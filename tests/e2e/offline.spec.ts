@@ -7,8 +7,8 @@ test("offline caches are isolated from other applications and installation paths
   const seeded = await page.evaluate(async () => {
     const scope = new URL("./", location.href).href;
     const foreign = "another-app-offline";
-    const sibling = `cleanpage-${encodeURIComponent(new URL("sibling/", scope).href)}:old`;
-    const obsolete = `cleanpage-${encodeURIComponent(scope)}:old`;
+    const sibling = `greenpage-${encodeURIComponent(new URL("sibling/", scope).href)}:old`;
+    const obsolete = `greenpage-${encodeURIComponent(scope)}:old`;
     const unrelated = await caches.open(foreign);
     await unrelated.put(new URL("app.css", scope), new Response("#sheet { width: 1px !important; }", {
       headers: { "Content-Type": "text/css" },

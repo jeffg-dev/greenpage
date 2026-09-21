@@ -49,8 +49,6 @@ const IN_CODE = [
   "copied",
   "saved",
   "pageCount",
-  "resetTitle",
-  "resetBody",
   "nameRequired",
   "nameInvalid",
   "draftsDelete",

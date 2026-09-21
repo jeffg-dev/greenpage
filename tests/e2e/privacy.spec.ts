@@ -99,7 +99,7 @@ test("only greenpage:* keys are used, and nothing leaves the device", async ({ p
   expect(storage["idb"]).toEqual([]);
 
   // Exactly one cache, named for this build, holding only our own static files.
-  expect((storage["cacheNames"] as string[]).every((n) => /^cleanpage-/.test(n))).toBe(true);
+  expect((storage["cacheNames"] as string[]).every((n) => /^greenpage-/.test(n))).toBe(true);
   expect(storage["leak"], "no cached response contains the child's writing").toBe(false);
   for (const p of storage["cached"] as string[]) {
     expect(p, "only the application's own files are cached").toMatch(

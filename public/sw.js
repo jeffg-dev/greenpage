@@ -1,4 +1,4 @@
-const CACHE_PREFIX = `cleanpage-${encodeURIComponent(self.registration.scope)}:`;
+const CACHE_PREFIX = `greenpage-${encodeURIComponent(self.registration.scope)}:`;
 const CACHE = `${CACHE_PREFIX}__CP_BUILD__`;
 const ASSETS = ["__CP_ASSETS__"];
 
