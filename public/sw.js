@@ -10,7 +10,7 @@ self.addEventListener("install", (e) => {
   // bytes — and this project's wrap and print geometry is measured against
   // exact font metrics.
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: "reload" })))),
+    caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()),
   );
 });
 
@@ -18,7 +18,7 @@ self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((ks) =>
       Promise.all(ks.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE).map((k) => caches.delete(k))),
-    ),
+    ).then(() => self.clients.claim()),
   );
 });
 

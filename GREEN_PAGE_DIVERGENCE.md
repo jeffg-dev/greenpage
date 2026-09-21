@@ -5,6 +5,7 @@ Green Page is a personal fork of Clean Page. Upstream is merged in regularly; th
 ## Deployment
 
 - The tip of `main` is the product. Every push to `main` deploys to https://greenpage.app. There are no versioned releases, no dev/production split, and no release-tag build.
+- A new build takes over on the next reload rather than waiting for every tab to close, since main deploys continuously.
 - Hosting is a Cloudflare Worker with static assets, deployed by GitHub Actions using a Cloudflare token scoped to Workers on this account and the `greenpage.app` zone.
 
 ## Identity
@@ -15,6 +16,10 @@ Green Page is a personal fork of Clean Page. Upstream is merged in regularly; th
 ## Fonts
 
 - Settings offers a third face, Monospace (Source Code Pro), next to Serif and Sans-serif.
+
+## Accessibility
+
+- Names, labels and roles for assistive technology stay, but Clean Page's strict focus choreography (tight roving-focus rules, focus-return guarantees, keyboard-order audits) is not a requirement here. Upstream tests that only enforce that choreography may be dropped.
 
 ## Toolbar
 
