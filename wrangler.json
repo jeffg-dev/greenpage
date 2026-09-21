@@ -1,12 +1,7 @@
 {
-  "name": "cleanpage",
+  "name": "greenpage",
   "compatibility_date": "2026-09-18",
   "workers_dev": false,
   "assets": { "directory": "./dist" },
-  "env": {
-    "dev": {
-      "workers_dev": false,
-      "assets": { "directory": "./dist" }
-    }
-  }
+  "routes": [{ "pattern": "greenpage.app", "custom_domain": true }]
 }

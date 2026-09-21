@@ -1,32 +1,25 @@
-name: Deploy production
+name: Deploy
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: Release tag (v-prefixed semver)
-        required: true
-        type: string
+  push:
+    branches: [main]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
 
 concurrency:
-  group: deploy-production
-  cancel-in-progress: false
+  group: deploy
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://cleanpage.app/
+      url: https://greenpage.app/
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - uses: actions/setup-node@v4
         with:
@@ -39,7 +32,7 @@ jobs:
 
       - run: npm run build
         env:
-          CP_BUILD_REF: ${{ github.event.release.tag_name || inputs.tag }}
+          CP_BUILD_REF: main
 
       - run: npx --yes wrangler@4 deploy
         env:
