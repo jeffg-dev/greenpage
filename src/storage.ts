@@ -27,7 +27,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function readSettings(): Settings | null {
   const settings = read(SETTINGS_KEY);
   if (!isRecord(settings) ||
-        (settings.font !== "serif" && settings.font !== "sans" && settings.font !== "dys") ||
+        (settings.font !== "serif" && settings.font !== "sans" && settings.font !== "mono" && settings.font !== "dys") ||
       (settings.size !== "regular" && settings.size !== "small" && settings.size !== "medium" && settings.size !== "large") ||
       (settings.theme !== undefined && settings.theme !== "system" && settings.theme !== "light" && settings.theme !== "dark")) {
     return null;

@@ -6,9 +6,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Source Code Pro";
+  src: url("/fonts/SourceCodePro-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 html[data-font="sans"] .tp-text,
 .font-preview[data-preview-font="sans"],
 .size-preview[data-preview-font="sans"] {
   font-family: "Source Sans 3", sans-serif;
   letter-spacing: 0.01em;
+}
+html[data-font="mono"] .tp-text,
+.font-preview[data-preview-font="mono"],
+.size-preview[data-preview-font="mono"] {
+  font-family: "Source Code Pro", ui-monospace, monospace;
 }

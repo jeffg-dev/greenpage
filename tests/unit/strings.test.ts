@@ -16,6 +16,7 @@ const IN_MARKUP = [
   "letters",
   "lettersSerif",
   "lettersSansSerif",
+  "lettersMono",
   "fontSize",
   "sizeRegular",
   "sizeLarge",

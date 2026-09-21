@@ -402,6 +402,7 @@ async function boot(): Promise<void> {
   layout();
   syncDocName();
   void document.fonts.load('16px "Source Sans 3"').catch(() => {});
+  void document.fonts.load('16px "Source Code Pro"').catch(() => {});
   try {
     await document.fonts.load('16px "Source Serif 4"');
   } catch {

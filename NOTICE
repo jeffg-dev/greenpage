@@ -30,4 +30,17 @@ Version 1.1 (see LICENSES/OFL-1.1.txt):
     from it byte for byte
     (sha256 32d31962a0b132027de9a4e3372f64b1b081d51bd3a80380fbec6cbfb1adde16).
 
+  Source Code Pro 1.026 (Regular) - public/fonts/SourceCodePro-Regular.woff2
+    Copyright 2010, 2023 Adobe (http://www.adobe.com/), with Reserved Font
+      Name "Source". Source is a trademark of Adobe in the United States
+      and/or other countries.
+    https://github.com/adobe-fonts/source-code-pro
+    The upstream TrueType binary is committed alongside it as
+    public/fonts/SourceCodePro-Regular.ttf
+    (sha256 1bd0bb61d974f62f9cc208a162fd3a7a13f95ba0b56b88b870730bf3ae1ba358).
+    The WOFF2 is a lossless container conversion of that exact file, produced
+    by `woff2_compress SourceCodePro-Regular.ttf` (woff2 1.0.2) and reproducible
+    from it byte for byte
+    (sha256 b50576b02b189c077b6b7b9c672cfa7df115f3956a0f244f2c781c7a731f363e).
+
 "Clean Page" and "ChirpWater" are not licensed under the Apache License.

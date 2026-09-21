@@ -15,6 +15,7 @@ export const S = {
   letters: "Letters",
   lettersSerif: "Serif",
   lettersSansSerif: "Sans-serif",
+  lettersMono: "Monospace",
 
   fontSize: "Font size",
   sizeRegular: "Regular",
