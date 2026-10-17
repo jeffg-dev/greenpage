@@ -1,6 +1,6 @@
 export const OPTIONS = {
   font: ["serif", "sans", "mono"],
-  size: ["regular", "large"],
+  size: ["small", "regular", "large"],
   theme: ["system", "light", "dark"],
 } as const;
 

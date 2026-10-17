@@ -89,7 +89,7 @@ export async function chooseFont(page: Page, font: "serif" | "sans" | "mono"): P
   await settle(page);
 }
 
-export async function chooseSize(page: Page, size: "regular" | "large"): Promise<void> {
+export async function chooseSize(page: Page, size: "small" | "regular" | "large"): Promise<void> {
   await page.locator("#btnSettings").click();
   await page.locator(`input[name="size"][value="${size}"]`).check();
   await page.locator("#settingsApply").click();

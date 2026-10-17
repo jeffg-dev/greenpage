@@ -92,6 +92,7 @@ test("applied choices survive closing the tab and opening another", async ({ pag
 test("each size shares metrics between writing, measurement, and printed pages", async ({ page }) => {
   await page.locator("#ta").fill(Array.from({ length: 25 }, (_, index) => `Line ${index + 1}`).join("\n"));
   for (const [name, fontSize, lineHeight, pageCount] of [
+    ["Small", "14px", "28px", 1],
     ["Regular", "16px", "32px", 1],
     ["Large", "24px", "48px", 2],
   ] as const) {

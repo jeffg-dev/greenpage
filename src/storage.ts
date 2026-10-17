@@ -31,7 +31,7 @@ export function readSettings(): Settings | null {
     ...DEFAULT_SETTINGS,
     ...stored,
     font: stored.font === "dys" ? "sans" : stored.font,
-    size: stored.size === "medium" || stored.size === "small" ? "regular" : stored.size,
+    size: stored.size === "medium" ? "regular" : stored.size,
   };
   const keys = Object.keys(OPTIONS) as (keyof Settings)[];
   return keys.every((key) => pick(key, merged[key]) !== undefined)

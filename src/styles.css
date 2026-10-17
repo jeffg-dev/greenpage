@@ -99,6 +99,10 @@
 html[data-font="sans"] .tp-text {
   font-family: "Source Sans 3", sans-serif;
 }
+html[data-size="small"] .tp-text {
+  font-size: 0.875rem;
+  line-height: 1.75rem;
+}
 html[data-size="regular"] .tp-text {
   font-size: 1rem;
   line-height: 2rem;
@@ -598,6 +602,9 @@ dialog .btn:focus {
 }
 .size-preview {
   min-width: 44px;
+}
+.size-preview[data-preview-size="small"] {
+  font-size: 0.875rem;
 }
 .size-preview[data-preview-size="regular"] {
   font-size: 1rem;
