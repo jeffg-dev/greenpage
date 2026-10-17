@@ -118,7 +118,6 @@ export function previewOf(text: string): string {
 
 let id = "";
 let name = "";
-let persisted = "";
 let saveTimer = 0;
 let onError: (() => void) | undefined;
 
@@ -127,11 +126,7 @@ export function initDraftStorage(handler: () => void): void {
 }
 
 function persist(text: string): void {
-  if (storeDraft({ id, name, text, updatedAt: Date.now() })) {
-    persisted = text;
-  } else {
-    onError?.();
-  }
+  if (!storeDraft({ id, name, text, updatedAt: Date.now() })) onError?.();
 }
 
 export function currentName(): string {
@@ -142,26 +137,18 @@ export function currentId(): string {
   return id;
 }
 
-export function persistedText(): string {
-  return persisted;
-}
-
 export function boot(): { name: string; text: string } {
   const remembered = rememberedDraft();
   const existing = remembered ? readDraft(remembered.id) : null;
   id = existing?.id ?? remembered?.id ?? newDraftId();
   name = existing?.name ?? remembered?.name ?? randomDraftName();
-  persisted = existing?.text ?? "";
   remember();
-  return { name, text: persisted };
+  return { name, text: existing?.text ?? "" };
 }
 
-export function scheduleAutosave(text: string, after: () => void): void {
+export function scheduleAutosave(text: string): void {
   clearTimeout(saveTimer);
-  saveTimer = window.setTimeout(() => {
-    persist(text);
-    after();
-  }, 300);
+  saveTimer = window.setTimeout(() => persist(text), 300);
 }
 
 export function flush(text: string): void {
@@ -173,7 +160,6 @@ export function startNew(currentText: string): { name: string; text: string } {
   flush(currentText);
   id = newDraftId();
   name = randomDraftName();
-  persisted = "";
   remember();
   return { name, text: "" };
 }
@@ -193,7 +179,6 @@ export function switchTo(currentText: string, targetId: string): { name: string;
   if (!record) return null;
   id = record.id;
   name = record.name;
-  persisted = record.text;
   remember();
   return { name, text: record.text };
 }

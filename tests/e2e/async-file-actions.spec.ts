@@ -42,8 +42,6 @@ test("a pending save keeps its document bound and later typing outside the expor
   await page.evaluate(() => (window as unknown as { finishSave: () => void }).finishSave());
   await expect(page.locator("#btnNew")).toBeEnabled();
   await expect(page.locator("#ta")).toHaveValue("First story continues");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
-  await expect(page.locator("#statusWord")).toBeEmpty();
   await expect(page.locator("#say")).toBeHidden();
   expect(await page.evaluate(() => {
     const state = window as unknown as { pickerCalls: number; savedText: string };
@@ -52,7 +50,6 @@ test("a pending save keeps its document bound and later typing outside the expor
 
   await page.locator("#btnNew").click();
   await expect(page.locator("#ta")).toHaveValue("");
-  await expect(page.locator("#status")).toHaveAttribute("data-empty", "true");
 });
 
 for (const source of ["open", "drop"] as const) {
@@ -90,7 +87,6 @@ for (const source of ["open", "drop"] as const) {
     await page.locator("#ta").fill("New words written while the file loads.");
     await page.evaluate(() => (window as unknown as { finishRead: () => void }).finishRead());
     await expect(page.locator("#ta")).toHaveValue("Teacher instructions");
-    await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
     await expect(page.locator("#btnOpen")).toBeEnabled();
     await expect(page.locator("#ta")).toBeFocused();
     await expect(page.locator("#docName")).toHaveText("teacher.txt");

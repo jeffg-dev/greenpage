@@ -1,28 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { CORPUS, chooseFont, geometry, open, setText, settle } from "./helpers.js";
 
-test("the saved indicator stays quiet while editing and follows edit and undo", async ({
-  page,
-}) => {
-  await open(page);
-  await expect(page.locator("#status")).toHaveAttribute("data-empty", "true");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
-
-  await page.locator("#ta").click();
-  await page.keyboard.type("Once upon a time");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
-  await settle(page);
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
-
-  for (let i = 0; i < 20 && (await page.inputValue("#ta")) !== ""; i++) {
-    await page.keyboard.press("ControlOrMeta+z");
-  }
-  await settle(page);
-  expect(await page.inputValue("#ta")).toBe("");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
-  await expect(page.locator("#status")).toHaveAttribute("data-empty", "true");
-});
-
 test("New clears the page immediately, without asking, and drafts persist so closing is always safe", async ({ page }) => {
   await open(page);
   await setText(page, "There are very few good tragedies\nsome are idylls in dialogue, well written and well rhymed.");

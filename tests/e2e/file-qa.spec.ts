@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { open, setText } from "./helpers.js";
+import { open, ready, setText } from "./helpers.js";
 
 test("a storage abort after choosing a save file reports failure and keeps the writing", async ({ page }) => {
   await page.addInitScript(() => {
@@ -17,8 +17,9 @@ test("a storage abort after choosing a save file reports failure and keeps the w
   await page.locator("#downloadGo").click();
   await expect(page.locator("#say")).toBeVisible();
   await expect(page.locator("#ta")).toHaveValue("My story remains unsaved.");
-  // The download failed, but the draft itself was already autosaved locally.
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
+  await page.reload();
+  await ready(page);
+  await expect(page.locator("#ta")).toHaveValue("My story remains unsaved.");
 });
 
 test("a storage abort after choosing an open file reports failure", async ({ page }) => {
@@ -52,5 +53,4 @@ test("cancelling either native picker stays quiet and preserves the document", a
   await expect(page.locator("#ta")).toBeFocused();
   await expect(page.locator("#say")).toBeHidden();
   await expect(page.locator("#ta")).toHaveValue("Keep my draft.");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
 });

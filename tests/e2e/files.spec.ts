@@ -39,30 +39,25 @@ test("Download confirms a .txt name from the first line and writes exact bytes",
   expect(raw.includes(0x0d)).toBe(false);
 
   await settle(page);
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
   await expect(page.locator("#docName")).toHaveText("My Tide Pool Story.txt");
   await expect(page.locator("#ta"), "the cursor comes straight back").toBeFocused();
 });
 
-test("after a download, edits mark writing unsaved and undo restores the exported snapshot", async ({ page }) => {
+test("after a download, undo after edits restores the exported snapshot", async ({ page }) => {
   await open(page);
   await setText(page, STORY);
   await downloadWriting(page);
   await settle(page);
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
 
   await page.locator("#ta").click();
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.type("A pelican flew over.");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
-  await expect(page.locator("#statusWord")).toBeEmpty();
 
   for (let i = 0; i < 30 && (await page.inputValue("#ta")) !== STORY; i++) {
     await page.keyboard.press("ControlOrMeta+z");
   }
   await settle(page);
   expect(await page.inputValue("#ta")).toBe(STORY);
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
   await expect(page.locator("#docName")).toHaveText("My Tide Pool Story.txt");
 });
 
@@ -100,7 +95,6 @@ test("Download waits for a chosen filename and remembers the edited name", async
   ]);
   expect(download.suggestedFilename()).toBe("My weekend at the beach.txt");
   await expect(page.locator("#ta")).toHaveValue(STORY);
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
   await page.locator("#btnSave").click();
   await expect(page.locator("#downloadName")).toHaveValue("My weekend at the beach.txt");
   await page.locator("#downloadCancel").click();
@@ -120,7 +114,6 @@ for (const cancel of ["button", "escape"] as const) {
     await expect(page.locator("#downloadDlg")).toBeHidden();
     await expect(page.locator("#ta")).toBeFocused();
     await expect(page.locator("#ta")).toHaveValue(STORY);
-    await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
     await expect(page.locator("#btnSave")).toBeEnabled();
     expect(downloads).toEqual([]);
     await page.locator("#btnNew").click();
@@ -177,7 +170,6 @@ test("Open reads a file in, stripping the BOM and normalising CRLF and lone CR",
   await openFile(page, "from-the-teacher.txt", bytes);
 
   expect(await page.inputValue("#ta")).toBe("line one\nline two\nline three\nend\n");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
   await expect(page.locator("#docName")).toHaveText("from-the-teacher.txt");
   await expect(page.locator("#ta")).toBeFocused();
   expect(await page.evaluate(() => (document.getElementById("ta") as HTMLTextAreaElement).selectionStart)).toBe(0);
@@ -215,7 +207,6 @@ test("a selected file can finish reading after the picker cancellation grace per
   });
   await expect(page.locator("#ta")).toHaveValue("My file arrived from the cloud.\n");
   await expect(page.locator("#docName")).toHaveText("slow-drive.txt");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
 });
 
 test("a file that is not plain writing is refused, and the document is untouched", async ({

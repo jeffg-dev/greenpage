@@ -4,7 +4,7 @@ import {
   currentId,
   flush,
   initDraftStorage,
-  persistedText,
+  readDraft,
   randomDraftName,
   switchTo,
   upsertDraft,
@@ -76,15 +76,16 @@ describe("storage-backed draft lifecycle", () => {
     const result = switchTo("Hello World", id);
 
     expect(result?.text).toBe("Hello World");
-    expect(persistedText()).toBe("Hello World");
+    expect(readDraft(id)?.text).toBe("Hello World");
   });
 
-  it("a failing write keeps persistedText() unchanged, so the dirty state stays truthful", () => {
+  it("a failing write leaves the stored draft unchanged and reports the error", () => {
     let errors = 0;
     initDraftStorage(() => { errors++; });
     boot();
+    const id = currentId();
     flush("first save");
-    expect(persistedText()).toBe("first save");
+    expect(readDraft(id)?.text).toBe("first save");
 
     vi.stubGlobal("localStorage", {
       getItem: (key: string) => store.get(key) ?? null,
@@ -92,7 +93,7 @@ describe("storage-backed draft lifecycle", () => {
     });
     flush("second save, never lands");
 
-    expect(persistedText(), "a failed write must not be reported as saved").toBe("first save");
+    expect(readDraft(id)?.text).toBe("first save");
     expect(errors).toBe(1);
   });
 });

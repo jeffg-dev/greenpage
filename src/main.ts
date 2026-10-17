@@ -28,9 +28,6 @@ const sheet = $("sheet");
 const mirror = $<HTMLPreElement>("mirror");
 const breaks = $("breaks");
 const printHost = $("printdoc");
-const status = $("status");
-const statusWord = $("statusWord");
-const statusGlyph = status.querySelector<HTMLElement>(".gl")!;
 const pagecount = $("pagecount");
 
 const btnNew = $<HTMLButtonElement>("btnNew");
@@ -103,34 +100,20 @@ sheet.addEventListener("pointerdown", (e) => {
   ta.focus();
 });
 
-let lastStatus = "";
 let appReady = false;
 
-const hasWriting = (): boolean => ta.value.trim().length > 0;
-
-function refreshDirty(): void {
-  const empty = !hasWriting();
-  const pending = ta.value !== drafts.persistedText();
-  const statusKey = JSON.stringify([pending, empty, drafts.currentName()]);
-  if (statusKey !== lastStatus) {
-    lastStatus = statusKey;
-    const shown = !pending && !empty;
-    statusGlyph.textContent = shown ? "✓" : "";
-    statusWord.textContent = shown ? S.saved : "";
-    status.dataset.empty = String(empty);
-    status.dataset.state = pending ? "dirty" : "clean";
-  }
+function refreshTitle(): void {
   document.title = `${drafts.currentName()} — ${S.appName}`;
 }
 
 const docNameUI = initDocName(btnDocName, $<HTMLInputElement>("docNameInput"), (newName) => {
   drafts.rename(newName, ta.value);
-  refreshDirty();
+  refreshTitle();
 });
 
 function syncDocName(): void {
   docNameUI.setName(drafts.currentName());
-  refreshDirty();
+  refreshTitle();
 }
 
 let draftsWarned = false;
@@ -141,9 +124,9 @@ drafts.initDraftStorage(() => {
 });
 
 ta.addEventListener("input", () => {
-  refreshDirty();
+  refreshTitle();
   requestAnimationFrame(layout);
-  drafts.scheduleAutosave(ta.value, refreshDirty);
+  drafts.scheduleAutosave(ta.value);
 });
 
 addEventListener("pagehide", () => drafts.flush(ta.value));

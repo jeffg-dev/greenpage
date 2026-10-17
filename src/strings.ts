@@ -49,9 +49,6 @@ export const S = {
   tabHint: "To reach the buttons, press Alt and F. Escape returns to writing.",
   tabHintMac: "To reach the buttons, press Control, Option and F. Escape returns to writing.",
 
-  // Saved indicator
-  saved: "Saved",
-
   // Page count, announced to screen readers only
   pageCount: (n: number) => (n === 1 ? "Now 1 page." : `Now ${n} pages.`),
 

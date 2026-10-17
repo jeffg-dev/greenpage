@@ -112,7 +112,6 @@ test("denied storage does not break writing and reports a settings save failure"
   await page.goto("./");
   await ready(page);
   await page.locator("#ta").fill(STORY);
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "dirty");
   await page.locator("#btnSettings").click();
   await page.getByRole("radio", { name: "Large", exact: true }).check();
   await page.locator("#settingsApply").click();

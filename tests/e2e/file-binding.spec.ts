@@ -89,7 +89,6 @@ test("refusing a file that is not plain writing keeps the document bound to its 
 
   expect(await page.inputValue("#ta")).toBe("My tide pool story and more");
   await expect(page.locator("#docName")).toHaveText("story.txt");
-  await expect(page.locator("#status")).toHaveAttribute("data-state", "clean");
 
   await setText(page, "My tide pool story and more and more");
   await page.locator("#btnSave").click();

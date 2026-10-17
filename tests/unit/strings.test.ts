@@ -47,7 +47,6 @@ const IN_CODE = [
   "settings",
   "tabHintMac",
   "copied",
-  "saved",
   "pageCount",
   "nameRequired",
   "nameInvalid",

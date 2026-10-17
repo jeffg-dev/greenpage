@@ -25,7 +25,6 @@
   --sel-bg: light-dark(#14202b, #4a6d94);
   --sel-ink: light-dark(#ffffff, #f2f5f8);
   --focus: light-dark(#0b57d0, #8ab4f8);
-  --ok-ink: light-dark(#0b5323, #7fd6a0);
   --edge: light-dark(#6b7280, #8b949d);
   --shade: 0 2px 12px rgb(0 0 0 / 35%);
   --lift: 0 12px 36px rgb(0 0 0 / 28%);
@@ -54,7 +53,6 @@
     --sel-bg: Highlight;
     --sel-ink: HighlightText;
     --focus: Highlight;
-    --ok-ink: CanvasText;
     --edge: CanvasText;
     --shade: none;
     --lift: none;
@@ -213,26 +211,6 @@ dialog input:focus-visible {
   dialog input:focus-visible {
     outline: 2px solid Highlight;
   }
-}
-
-#status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  box-sizing: border-box;
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  font: 400 0.8125rem/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: var(--soft-ink);
-  overflow-wrap: anywhere;
-}
-#statusWord {
-  white-space: nowrap;
-}
-#status[data-state="clean"] {
-  color: var(--ok-ink);
 }
 
 #docName[hidden] {
