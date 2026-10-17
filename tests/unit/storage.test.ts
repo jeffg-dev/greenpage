@@ -15,24 +15,24 @@ describe("settings storage", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("persists only font, size, and color choices", () => {
-    const settings = { font: "sans", size: "large", spacing: "normal", theme: "dark", text: "Private writing" } as const;
+    const settings = { font: "sans", size: "large", spacing: "normal", view: "page", theme: "dark", text: "Private writing" } as const;
     expect(writeSettings(settings)).toBe(true);
-    expect(readSettings()).toEqual({ font: "sans", size: "large", spacing: "normal", theme: "dark" });
+    expect(readSettings()).toEqual({ font: "sans", size: "large", spacing: "normal", view: "page", theme: "dark" });
     expect([...values.keys()]).toEqual([SETTINGS_KEY]);
-    expect(JSON.parse(values.get(SETTINGS_KEY)!)).toEqual({ font: "sans", size: "large", spacing: "normal", theme: "dark" });
+    expect(JSON.parse(values.get(SETTINGS_KEY)!)).toEqual({ font: "sans", size: "large", spacing: "normal", view: "page", theme: "dark" });
   });
 
   it("round-trips the monospace font choice", () => {
-    const settings = { font: "mono", size: "regular", spacing: "normal", theme: "light" } as const;
+    const settings = { font: "mono", size: "regular", spacing: "normal", view: "page", theme: "light" } as const;
     expect(writeSettings(settings)).toBe(true);
     expect(readSettings()).toEqual(settings);
   });
 
   it("migrates earlier sizes and a missing theme to the new defaults", () => {
     values.set(SETTINGS_KEY, JSON.stringify({ font: "dys", size: "small" }));
-    expect(readSettings()).toEqual({ font: "sans", size: "small", spacing: "normal", theme: "system" });
+    expect(readSettings()).toEqual({ font: "sans", size: "small", spacing: "normal", view: "page", theme: "system" });
     values.set(SETTINGS_KEY, JSON.stringify({ font: "serif", size: "medium", theme: "system" }));
-    expect(readSettings()).toEqual({ font: "serif", size: "regular", spacing: "normal", theme: "system" });
+    expect(readSettings()).toEqual({ font: "serif", size: "regular", spacing: "normal", view: "page", theme: "system" });
   });
 
   it.each(["{", "null", "[]", "{}",
@@ -51,14 +51,14 @@ describe("settings storage", () => {
       setItem: () => { throw new DOMException("Blocked", "SecurityError"); },
     });
     expect(readSettings()).toBeNull();
-    expect(writeSettings({ font: "serif", size: "regular", spacing: "normal", theme: "light" })).toBe(false);
+    expect(writeSettings({ font: "serif", size: "regular", spacing: "normal", view: "page", theme: "light" })).toBe(false);
   });
 
   it("reports quota failure without replacing saved settings", () => {
-    const settings = { font: "sans", size: "large", spacing: "normal", theme: "dark" } as const;
+    const settings = { font: "sans", size: "large", spacing: "normal", view: "page", theme: "dark" } as const;
     writeSettings(settings);
     localStorage.setItem = () => { throw new DOMException("Full", "QuotaExceededError"); };
-    expect(writeSettings({ font: "serif", size: "regular", spacing: "normal", theme: "light" })).toBe(false);
+    expect(writeSettings({ font: "serif", size: "regular", spacing: "normal", view: "page", theme: "light" })).toBe(false);
     expect(readSettings()).toEqual(settings);
   });
 
@@ -66,6 +66,6 @@ describe("settings storage", () => {
     expect(readSettings()).toBeNull();
     vi.stubGlobal("localStorage", undefined);
     expect(readSettings()).toBeNull();
-    expect(writeSettings({ font: "serif", size: "regular", spacing: "normal", theme: "light" })).toBe(false);
+    expect(writeSettings({ font: "serif", size: "regular", spacing: "normal", view: "page", theme: "light" })).toBe(false);
   });
 });

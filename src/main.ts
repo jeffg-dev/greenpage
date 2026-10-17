@@ -75,8 +75,8 @@ function layout(): void {
   const pageH = lpp * lineH;
   const starts = lineStarts(mirror, text);
   const pages = pagesOf(starts, lpp);
-  const narrow = ta.clientWidth < mirror.clientWidth;
-  if (narrow) {
+  const flowing = document.documentElement.dataset["view"] === "pageless" || ta.clientWidth < mirror.clientWidth;
+  if (flowing) {
     const y = scrollY;
     ta.style.height = "0px";
     ta.style.height = ta.scrollHeight + "px";
@@ -84,7 +84,7 @@ function layout(): void {
   } else {
     ta.style.height = pages * pageH + "px";
   }
-  renderBreaks(breaks, narrow ? 1 : pages, pageH);
+  renderBreaks(breaks, flowing ? 1 : pages, pageH);
   printDoc.schedule();
   announcePages(pages);
 }

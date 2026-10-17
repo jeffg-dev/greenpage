@@ -76,3 +76,32 @@ test("the browser's font-size preference enlarges the writing and repaginates th
   await setText(page, numberedLines(50));
   await expect(page.locator("#printdoc .page")).toHaveCount(3);
 });
+
+test("Pageless drops the page edges and rules but still prints the same pages", async ({ page }) => {
+  await open(page);
+  await setText(page, CORPUS);
+  const paged = await surface(page);
+  const rules = page.locator("#breaks .rule");
+  expect(await rules.count()).toBeGreaterThan(0);
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("radio", { name: "Pageless", exact: true }).check();
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await settle(page);
+
+  await expect(rules).toHaveCount(0);
+  const flowing = await surface(page);
+  expect(flowing.column, "the writing spans the window").toBeGreaterThan(CONTENT_W);
+  expect(flowing.content, "no line is clipped out of the field").toBeLessThanOrEqual(flowing.box);
+  expect(await page.locator("#sheet").evaluate((el) => el.getBoundingClientRect().width)).toBe(flowing.clientWidth);
+
+  await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
+  await expect(page.locator("#printdoc .page")).toHaveCount(paged.printPages);
+  expect(await page.locator("#mirror").evaluate((el) => el.clientWidth)).toBe(CONTENT_W);
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("radio", { name: "Page", exact: true }).check();
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await settle(page);
+  expect(await rules.count()).toBeGreaterThan(0);
+});

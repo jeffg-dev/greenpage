@@ -427,6 +427,15 @@ dialog input:focus-visible {
   box-shadow: var(--shade);
   cursor: text;
 }
+html[data-view="pageless"] #desk {
+  padding: 0;
+}
+html[data-view="pageless"] #sheet {
+  width: 100%;
+  min-height: calc(100dvh - var(--bar-h, 45px));
+  outline: 0;
+  box-shadow: none;
+}
 #ta {
   display: block;
   width: 100%;
