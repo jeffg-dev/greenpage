@@ -166,8 +166,13 @@ body {
   cursor: pointer;
 }
 .glyph {
-  font-size: 1.2rem;
-  line-height: 1;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .btn[aria-disabled="true"] {
   color: var(--dim-ink);
