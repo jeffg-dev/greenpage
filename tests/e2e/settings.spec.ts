@@ -89,15 +89,17 @@ test("applied choices survive closing the tab and opening another", async ({ pag
   await expect(reopened.getByRole("radio", { name: "Dark", exact: true })).toBeChecked();
 });
 
-test("each size shares metrics between writing, measurement, and printed pages", async ({ page }) => {
+test("each size and spacing shares metrics between writing, measurement, and printed pages", async ({ page }) => {
   await page.locator("#ta").fill(Array.from({ length: 25 }, (_, index) => `Line ${index + 1}`).join("\n"));
-  for (const [name, fontSize, lineHeight, pageCount] of [
-    ["Small", "14px", "28px", 1],
-    ["Regular", "16px", "32px", 1],
-    ["Large", "24px", "48px", 2],
+  for (const [size, spacing, fontSize, lineHeight, pageCount] of [
+    ["Small", "Normal", "14px", "28px", 1],
+    ["Regular", "Normal", "16px", "32px", 1],
+    ["Large", "Normal", "24px", "48px", 2],
+    ["Large", "Compact", "24px", "30px", 1],
   ] as const) {
     await page.getByRole("button", { name: "Settings", exact: true }).click();
-    await page.getByRole("radio", { name, exact: true }).check();
+    await page.getByRole("radio", { name: size, exact: true }).check();
+    await page.getByRole("radio", { name: spacing, exact: true }).check();
     await page.getByRole("button", { name: "Apply", exact: true }).click();
     await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
     await expect(page.locator("#printdoc .page")).toHaveCount(pageCount);

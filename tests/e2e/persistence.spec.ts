@@ -66,7 +66,7 @@ test("only applied settings survive tab closure, and resetting settings preserve
   await expect(reopened.locator("#settingsDlg")).toBeHidden();
   await expect(reopened.locator("#ta")).toHaveValue(STORY);
   expect(await reopened.evaluate((key) => JSON.parse(localStorage.getItem(key)!), SETTINGS_KEY))
-    .toEqual({ font: "serif", size: "regular", theme: "system" });
+    .toEqual({ font: "serif", size: "regular", spacing: "normal", theme: "system" });
 });
 
 test("a draft named by sessionStorage is restored on boot", async ({ page }) => {

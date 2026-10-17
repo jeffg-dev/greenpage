@@ -111,6 +111,15 @@ html[data-size="large"] .tp-text {
   font-size: 1.5rem;
   line-height: 3rem;
 }
+html[data-spacing="compact"] .tp-text {
+  line-height: 1.25rem;
+}
+html[data-spacing="compact"][data-size="small"] .tp-text {
+  line-height: 1.125rem;
+}
+html[data-spacing="compact"][data-size="large"] .tp-text {
+  line-height: 1.875rem;
+}
 
 html {
   background: var(--desk);

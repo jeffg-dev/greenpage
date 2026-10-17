@@ -1,6 +1,7 @@
 export const OPTIONS = {
   font: ["serif", "sans", "mono"],
   size: ["small", "regular", "large"],
+  spacing: ["normal", "compact"],
   theme: ["system", "light", "dark"],
 } as const;
 
@@ -9,6 +10,7 @@ export type Settings = { -readonly [K in keyof typeof OPTIONS]: (typeof OPTIONS)
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   font: "serif",
   size: "regular",
+  spacing: "normal",
   theme: "system",
 });
 
