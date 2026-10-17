@@ -1,4 +1,4 @@
-import type { Settings } from "./settings.js";
+import { DEFAULT_SETTINGS, OPTIONS, pick, type Settings } from "./settings.js";
 
 export const SETTINGS_KEY = "greenpage:settings:v1";
 
@@ -13,7 +13,7 @@ function read(key: string): unknown {
 
 function write(key: string, value: Settings): boolean {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(key, JSON.stringify(value, Object.keys(OPTIONS)));
     return true;
   } catch {
     return false;
@@ -25,20 +25,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function readSettings(): Settings | null {
-  const settings = read(SETTINGS_KEY);
-  if (!isRecord(settings) ||
-        (settings.font !== "serif" && settings.font !== "sans" && settings.font !== "mono" && settings.font !== "dys") ||
-      (settings.size !== "regular" && settings.size !== "small" && settings.size !== "medium" && settings.size !== "large") ||
-      (settings.theme !== undefined && settings.theme !== "system" && settings.theme !== "light" && settings.theme !== "dark")) {
-    return null;
-  }
-  return {
-    font: settings.font === "dys" ? "sans" : settings.font,
-    size: settings.size === "large" ? "large" : "regular",
-    theme: settings.theme === "dark" ? "dark" : "light",
+  const stored = read(SETTINGS_KEY);
+  if (!isRecord(stored)) return null;
+  const merged: Record<string, unknown> = {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+    font: stored.font === "dys" ? "sans" : stored.font,
+    size: stored.size === "medium" || stored.size === "small" ? "regular" : stored.size,
   };
+  const keys = Object.keys(OPTIONS) as (keyof Settings)[];
+  return keys.every((key) => pick(key, merged[key]) !== undefined)
+    ? (Object.fromEntries(keys.map((key) => [key, merged[key]])) as Settings)
+    : null;
 }
 
 export function writeSettings(settings: Settings): boolean {
-  return write(SETTINGS_KEY, { font: settings.font, size: settings.size, theme: settings.theme });
+  return write(SETTINGS_KEY, settings);
 }

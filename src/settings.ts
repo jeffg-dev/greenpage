@@ -1,20 +1,22 @@
-export type Settings = {
-  font: "serif" | "sans" | "mono";
-  size: "regular" | "large";
-  theme: "light" | "dark";
-};
+export const OPTIONS = {
+  font: ["serif", "sans", "mono"],
+  size: ["regular", "large"],
+  theme: ["system", "light", "dark"],
+} as const;
+
+export type Settings = { -readonly [K in keyof typeof OPTIONS]: (typeof OPTIONS)[K][number] };
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   font: "serif",
   size: "regular",
-  theme: "light",
+  theme: "system",
 });
 
+export const pick = <K extends keyof Settings>(key: K, value: unknown): Settings[K] | undefined =>
+  (OPTIONS[key] as readonly unknown[]).includes(value) ? (value as Settings[K]) : undefined;
+
 export function applySettings(settings: Settings): void {
-  const root = document.documentElement;
-  root.dataset.font = settings.font;
-  root.dataset.size = settings.size;
-  root.dataset.theme = settings.theme;
+  Object.assign(document.documentElement.dataset, settings);
 }
 
 export function initSettings(
@@ -28,13 +30,13 @@ export function initSettings(
   document.getElementById("appVersion")!.textContent = import.meta.env.CP_VERSION;
   let committed = { ...initial };
 
-  function formFont(values: FormData): Settings["font"] {
-    const font = values.get("font");
-    return font === "sans" || font === "mono" ? font : "serif";
-  }
+  const fromForm = (values: FormData): Settings =>
+    Object.fromEntries(
+      (Object.keys(OPTIONS) as (keyof Settings)[]).map((key) => [key, pick(key, values.get(key)) ?? DEFAULT_SETTINGS[key]]),
+    ) as Settings;
 
   function updatePreviews(): void {
-    const font = formFont(new FormData(form));
+    const font = fromForm(new FormData(form)).font;
     for (const sample of form.querySelectorAll<HTMLElement>(".size-preview")) {
       sample.dataset.previewFont = font;
     }
@@ -51,11 +53,7 @@ export function initSettings(
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const values = new FormData(form);
-    committed = {
-      font: formFont(values),
-      size: values.get("size") === "large" ? "large" : "regular",
-      theme: values.get("theme") === "dark" ? "dark" : "light",
-    };
+    committed = fromForm(values);
     onApply({ ...committed });
     dialog.close();
   });

@@ -16,7 +16,7 @@ const surface = (page: import("@playwright/test").Page) =>
     };
   });
 
-test("light and dark on-screen colors are selectable, and print stays light", async ({ page }) => {
+test("on-screen colors match the system by default, can be pinned, and print stays light", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await open(page);
   await setText(page, CORPUS);
@@ -26,14 +26,8 @@ test("light and dark on-screen colors are selectable, and print stays light", as
   );
 
   await page.emulateMedia({ colorScheme: "dark" });
-  expect((await surface(page)).paper, "the light choice ignores the system theme").toBe(light.paper);
-
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await expect(page.getByRole("radio", { name: "Light", exact: true })).toBeChecked();
-  await page.getByRole("radio", { name: "Dark", exact: true }).check();
-  await page.getByRole("button", { name: "Apply", exact: true }).click();
   const dark = await surface(page);
-  expect(dark.paper, "dark: the paper is repainted").not.toBe(light.paper);
+  expect(dark.paper, "dark: the paper follows the system live").not.toBe(light.paper);
   expect(dark.bar, "dark: the toolbar is repainted").not.toBe(light.bar);
   expect(luminance(dark.paper), "dark: the paper is the dim surface").toBeLessThan(
     luminance(dark.ink),
@@ -45,8 +39,17 @@ test("light and dark on-screen colors are selectable, and print stays light", as
   expect(contrast(dark.focus, dark.paper), "dark: the focus ring stays visible").toBeGreaterThan(3);
   expect(contrast(dark.focus, dark.bar), "dark: on the toolbar too").toBeGreaterThan(3);
 
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByRole("radio", { name: "Match system", exact: true })).toBeChecked();
+  await page.getByRole("radio", { name: "Light", exact: true }).check();
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  expect((await surface(page)).paper, "light choice ignores a dark system").toBe(light.paper);
+
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("radio", { name: "Dark", exact: true }).check();
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
   await page.emulateMedia({ colorScheme: "light" });
-  expect((await surface(page)).paper).toBe(dark.paper);
+  expect((await surface(page)).paper, "dark choice ignores a light system").toBe(dark.paper);
 
   await page.emulateMedia({ media: "print", colorScheme: "dark" });
   const printed = await page.evaluate(() => {

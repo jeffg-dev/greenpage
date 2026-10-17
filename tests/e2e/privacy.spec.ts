@@ -91,7 +91,7 @@ test("only greenpage:* keys are used, and nothing leaves the device", async ({ p
   const session = storage["sessionStorage"] as Record<string, string>;
   expect(Object.keys(local).every((k) => k.startsWith("greenpage:")), "only greenpage:* keys in localStorage").toBe(true);
   expect(Object.keys(session).every((k) => k.startsWith("greenpage:")), "only greenpage:* keys in sessionStorage").toBe(true);
-  expect(JSON.parse(local[SETTINGS_KEY]!)).toEqual({ font: "sans", size: "large", theme: "light" });
+  expect(JSON.parse(local[SETTINGS_KEY]!)).toEqual({ font: "sans", size: "large", theme: "system" });
   // Drafts are meant to be kept on this device, so the secret DOES show up
   // here — the point of this test is that it goes no further than that.
   expect(JSON.stringify(local)).toContain(SECRET);
