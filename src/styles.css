@@ -216,6 +216,9 @@ dialog input:focus-visible {
 #docName[hidden] {
   display: none;
 }
+#btnSettings {
+  margin-left: auto;
+}
 #docName {
   display: inline-flex;
   align-items: center;
