@@ -40,7 +40,7 @@ test("on-screen colors match the system by default, can be pinned, and print sta
   expect(contrast(dark.focus, dark.bar), "dark: on the toolbar too").toBeGreaterThan(3);
 
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await expect(page.getByRole("radio", { name: "Match system", exact: true })).toBeChecked();
+  await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
   await page.getByRole("radio", { name: "Light", exact: true }).check();
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   expect((await surface(page)).paper, "light choice ignores a dark system").toBe(light.paper);

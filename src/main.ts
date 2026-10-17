@@ -9,8 +9,9 @@ import * as drafts from "./drafts.js";
 import { S } from "./strings.js";
 import { promptSave, renderBreaks, say } from "./ui.js";
 import { initDocName, initDraftsDialog, initOpenMenu } from "./draftui.js";
-import { applySettings, DEFAULT_SETTINGS, initSettings } from "./settings.js";
+import { applySettings, DEFAULT_SETTINGS, initSettings, settingCommands, type Settings } from "./settings.js";
 import { readSettings, writeSettings } from "./storage.js";
+import { initPalette } from "./palette.js";
 import { initToolbar } from "./toolbar.js";
 import { initHistory } from "./history.js";
 
@@ -39,6 +40,7 @@ const btnDocName = $<HTMLButtonElement>("docName");
 const settingsDlg = $<HTMLDialogElement>("settingsDlg");
 const downloadDlg = $<HTMLDialogElement>("downloadDlg");
 const draftsDlg = $<HTMLDialogElement>("draftsDlg");
+const paletteDlg = $<HTMLDialogElement>("paletteDlg");
 btnSaveLabel.textContent = files.canSaveToFile() ? S.save : S.download;
 
 const sayDlg = $<HTMLDialogElement>("say");
@@ -135,7 +137,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 const askingSomething = (): boolean =>
-  sayDlg.open || settingsDlg.open || downloadDlg.open || draftsDlg.open || openMenuCtl.isOpen();
+  sayDlg.open || settingsDlg.open || downloadDlg.open || draftsDlg.open || paletteDlg.open || openMenuCtl.isOpen();
 const toolbar = initToolbar($("toolbar"), [btnDocName, btnSettings], ta, askingSomething);
 
 sayOk.textContent = S.errOk;
@@ -344,6 +346,9 @@ addEventListener("keydown", (e) => {
   } else if (k === "o") {
     e.preventDefault();
     void doOpenFile();
+  } else if (k === "/") {
+    e.preventDefault();
+    if (appReady && !fileBusy) palette.open();
   }
 });
 
@@ -357,12 +362,13 @@ const initialSettings = readSettings() ?? { ...DEFAULT_SETTINGS };
 applySettings(initialSettings);
 let settingsScroll = { y: 0, h: 0 };
 let settingsStored = true;
-const settings = initSettings(initialSettings, (value) => {
+function applyChoice(value: Settings): void {
   applySettings(value);
   clearCache();
   layout();
   settingsStored = writeSettings(value);
-}, () => {
+}
+const settings = initSettings(applyChoice, () => {
   refocusInPlace(settingsScroll.y, settingsScroll.h);
   if (!settingsStored) tell(S.settingsStorageError);
 });
@@ -372,6 +378,24 @@ btnSettings.addEventListener("click", () => {
   settingsStored = true;
   settings.open();
 });
+
+function chooseSetting(value: Settings): void {
+  const y = scrollY;
+  const h = document.documentElement.scrollHeight;
+  applyChoice(value);
+  refocusInPlace(y, h);
+  if (!settingsStored) tell(S.settingsStorageError);
+}
+
+const palette = initPalette(paletteDlg, $<HTMLInputElement>("paletteInput"), $("paletteList"), ta, () => [
+  { label: S.newDoc, run: () => btnNew.click() },
+  { label: `${S.open}: ${S.openFile}`, run: () => void doOpenFile() },
+  { label: `${S.open}: ${S.openDraft}`, run: () => draftsDialog.open() },
+  { label: btnSaveLabel.textContent!, words: `${S.save} ${S.download}`, run: () => void doSave() },
+  { label: S.rename, run: () => btnDocName.click() },
+  { label: S.settings, run: () => btnSettings.click() },
+  ...settingCommands(chooseSetting),
+]);
 
 const history = initHistory(ta);
 

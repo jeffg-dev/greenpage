@@ -38,6 +38,8 @@ const IN_MARKUP = [
   "draftsEmpty",
   "pageLabel",
   "tabHint",
+  "commands",
+  "commandHint",
 ] as const;
 
 const IN_CODE = [
@@ -46,7 +48,8 @@ const IN_CODE = [
   "save",
   "settings",
   "tabHintMac",
-  "copied",
+  "current",
+  "switchTo",
   "pageCount",
   "nameRequired",
   "nameInvalid",

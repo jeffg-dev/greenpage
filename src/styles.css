@@ -571,6 +571,36 @@ dialog .btn:focus {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
+#paletteDlg {
+  max-width: 25rem;
+  margin-block: 10dvh auto;
+  max-height: 80dvh;
+  padding: 12px;
+}
+#paletteInput {
+  margin-bottom: 8px;
+}
+#paletteList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 50dvh;
+  overflow-y: auto;
+}
+#paletteList [aria-selected="true"] {
+  background: var(--pick);
+  border-color: var(--edge);
+}
+.palette-hint {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--soft-ink);
+}
+@media (forced-colors: active) {
+  #paletteList [aria-selected="true"] {
+    border-color: Highlight;
+  }
+}
 .setting-sample {
   margin-left: auto;
   flex: 0 0 auto;
@@ -640,7 +670,8 @@ dialog .btn:focus {
   display: block;
   margin: 16px 0 8px;
 }
-#downloadName {
+#downloadName,
+#paletteInput {
   box-sizing: border-box;
   width: 100%;
   min-height: 44px;

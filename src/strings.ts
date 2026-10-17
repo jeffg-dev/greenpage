@@ -9,6 +9,10 @@ export const S = {
   save: "Save",
   download: "Download",
   settings: "Settings",
+  commands: "Commands",
+  commandHint: "Type a command",
+  current: "Current",
+  switchTo: (name: string) => `Switch to ${name}`,
   rename: "Rename",
   docNameLabel: "Document name",
 

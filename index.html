@@ -52,6 +52,7 @@
           wrap="soft"
           autofocus
           aria-label="Your writing"
+          aria-keyshortcuts="Control+/"
           aria-describedby="tabhint"
           spellcheck="false"
           autocorrect="off"
@@ -99,7 +100,7 @@
         </fieldset>
         <fieldset>
           <legend>On-Screen Colors</legend>
-          <label class="setting-choice"><input type="radio" name="theme" value="system" checked /><span>Match system</span></label>
+          <label class="setting-choice"><input type="radio" name="theme" value="system" checked /><span>System</span></label>
           <label class="setting-choice"><input type="radio" name="theme" value="light" /><span>Light</span></label>
           <label class="setting-choice"><input type="radio" name="theme" value="dark" /><span>Dark</span></label>
         </fieldset>
@@ -137,6 +138,11 @@
       <div class="dlg-row">
         <button type="button" id="draftsClose" class="btn">Close</button>
       </div>
+    </dialog>
+
+    <dialog id="paletteDlg" aria-label="Commands">
+      <input type="text" id="paletteInput" role="combobox" aria-label="Commands" placeholder="Type a command" aria-controls="paletteList" aria-expanded="true" aria-autocomplete="list" autocomplete="off" spellcheck="false" />
+      <ul id="paletteList" role="listbox" aria-label="Commands"></ul>
     </dialog>
 
     <dialog id="say" role="alertdialog" aria-labelledby="sayTitle" aria-describedby="sayBody">
